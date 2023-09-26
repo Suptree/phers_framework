@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-
+import torch
+print(torch.__version__)
+print(torch.cuda.is_available())
+print(torch.cuda.get_device_name(0))
 import rospy
 import numpy as np
 from std_msgs.msg import Float32MultiArray
@@ -28,8 +31,8 @@ class WaypointNavigation:
     # Tunable parameters
     wGain = 10.0
     # vConst = 0.15
-    vConst = 0.06 # 82%
-    # vConst = 0.1 # 79%
+    # vConst = 0.06 # 82%
+    vConst = 0.1 # 79%
 
 
     # HeRo's parameters
@@ -93,8 +96,8 @@ class WaypointNavigation:
         self.sensitivity = 1.2
 
         self.BIAS = 0.25
-        self.V_COEF = 0.06 # 82%
-        # self.V_COEF = 0.1 # 82%
+        # self.V_COEF = 0.06 # 82%
+        self.V_COEF = 0.1 # 79%
         self.W_COEF = 0.2
 
         self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
