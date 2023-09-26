@@ -18,16 +18,21 @@ import statistics
 
 class WaypointNavigation:
     # 最大速度 0.1 m/s
-    MAX_FORWARD_SPEED = 0.1
-    MAX_ROTATION_SPEED = 1.0
+    MAX_FORWARD_SPEED = 0.5
+    MAX_ROTATION_SPEED = 0.5
 
     # ロボットに発信する速度・角速度変数を定義
     cmdmsg = Twist()
     index = 0
 
     # Tunable parameters
-    wGain = 1.0
-    vConst = 0.06
+    wGain = 10.0
+    # vConst = 0.15
+    vConst = 0.06 # 82%
+    # vConst = 0.1 # 79%
+
+
+    # HeRo's parameters
     distThr = 0.02
     pheroThr = 0.3
 
@@ -40,16 +45,16 @@ class WaypointNavigation:
         self.color = "BLUE"
 
         # Goalをランダムで決定する
-        # goal_r = 0.8
-        # goal_radius = 2.0 * math.pi * random.random()
+        goal_r = 0.8
+        goal_radius = 2.0 * math.pi * random.random()
         # print("goal_raius = {}".format(math.degrees(goal_radius)))
-        # self.goal_pos_x = goal_r * math.cos(goal_radius)
-        # self.goal_pos_y = goal_r * math.sin(goal_radius)
+        self.goal_pos_x = goal_r * math.cos(goal_radius)
+        self.goal_pos_y = goal_r * math.sin(goal_radius)
         # print("Goal Position = ({}, {})".format(
-        #     self.goal_pos_x, self.goal_pos_y))
+            # self.goal_pos_x, self.goal_pos_y))
         # Goalを手動で決める
-        self.goal_pos_x = -1.0
-        self.goal_pos_y = 0.0
+        # self.goal_pos_x = -1.0
+        # self.goal_pos_y = 0.0
 
         # 障害物の位置
         self.obstacle = [[0.4, 0.0], [-0.4, 0.0], [0.0, 0.4], [0.0, -0.4]]
@@ -82,11 +87,15 @@ class WaypointNavigation:
             '/gazebo/model_states', ModelStates, self.Callback)
         self.pub = rospy.Publisher('/hero_0/cmd_vel', Twist, queue_size=1)
         self.pub_led = rospy.Publisher('/hero_0/led', ColorRGBA, queue_size=1)
+        
+        # 未使用
         self.beta_const = 1.2
         self.sensitivity = 1.2
+
         self.BIAS = 0.25
-        self.V_COEF = 0.6  # self.v_range[0]
-        self.W_COEF = 0.4  # self.w_range[0]
+        self.V_COEF = 0.06 # 82%
+        # self.V_COEF = 0.1 # 82%
+        self.W_COEF = 0.2
 
         self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
         # Initialise simulation
@@ -242,7 +251,7 @@ class WaypointNavigation:
         if (distance_to_obs[0] < 0.059 or distance_to_obs[1] < 0.059 or distance_to_obs[2] < 0.059 or distance_to_obs[3] < 0.059) and reset_time > 1:
             msg = Twist()
             self.is_collided = True
-            print(distance_to_obs)
+            # print(distance_to_obs)
             # if(self.counted == False):
             #     self.counted = True
             #     self.counter_collision +=1
@@ -306,10 +315,10 @@ class WaypointNavigation:
         twist = Twist()
 
         # Calculate vector weights
-        vec_coefs[0] = self.velCoef(phero[5], phero[3])
-        vec_coefs[1] = self.velCoef(phero[2], phero[6])
-        vec_coefs[2] = self.velCoef(phero[1], phero[7])
-        vec_coefs[3] = self.velCoef(phero[0], phero[8])
+        vec_coefs[0] = self.velCoef(phero[3], phero[5])
+        vec_coefs[1] = self.velCoef(phero[6], phero[2])
+        vec_coefs[2] = self.velCoef(phero[7], phero[1])
+        vec_coefs[3] = self.velCoef(phero[8], phero[0])
 
         # print("vec_corf[0] : {}, vec_corf[0] : {}, vec_corf[0] : {}, vec_corf[0] : {}".format(
         # vec_coefs[0], vec_coefs[1], vec_coefs[2], vec_coefs[3]))
@@ -346,11 +355,11 @@ class WaypointNavigation:
         # Goalをランダムで決定する
         goal_r = 0.8
         goal_radius = 2.0 * math.pi * random.random()
-        print("goal_raius = {}".format(math.degrees(goal_radius)))
+        # print("goal_raius = {}".format(math.degrees(goal_radius)))
         self.goal_pos_x = goal_r * math.cos(goal_radius)
         self.goal_pos_y = goal_r * math.sin(goal_radius)
-        print("Goal Position = ({}, {})".format(
-            self.goal_pos_x, self.goal_pos_y))
+        # print("Goal Position = ({}, {})".format(
+            # self.goal_pos_x, self.goal_pos_y))
         # Goalを手動で決める
         # self.goal_pos_x = 0.0
         # self.goal_pos_y = 1.5
@@ -428,7 +437,9 @@ class WaypointNavigation:
             self.counter_step += 1
             print("Timeout!")
 
-        print("counter_step: {}, counter_success: {}, counter_collision: {}, Episode mean time: {}".format(self.counter_step, self.counter_success, self.counter_collision, statistics.mean(self.arrival_time)))
+        print("counter_step: {}, counter_success: {}, counter_collision: {}".format(self.counter_step, self.counter_success, self.counter_collision))
+        if len(self.arrival_time) > 0:
+            print("Episode mean time: {}".format( statistics.mean(self.arrival_time)))
         # ========================================================================= #
 	    #                                  RESET                                    #
 	    # ========================================================================= #
@@ -472,7 +483,7 @@ class WaypointNavigation:
 
 
 if __name__ == '__main__':
-    rospy.init_node('pose_reading')
+    rospy.init_node('Hand_Tune_Controller')
     wayN = WaypointNavigation()
     # wayN.InformationMaker()
     rospy.spin()

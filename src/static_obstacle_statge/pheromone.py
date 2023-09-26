@@ -274,6 +274,6 @@ class Pheromone:
 
 
 if __name__ == "__main__":
-    rospy.init_node("pheromone")
+    rospy.init_node("Pheromone_Framework")
     node1 = Node()
     rospy.spin()
