@@ -15,24 +15,25 @@ This repository provides reproduction code for the universal artificial pheromon
 
 #### 3. **Environment & Dependencies**:
 - Python 3.8
-- TensorFlow 2.4
+- pytorch
 - OpenAI Gym 0.17.0
 - [Other necessary libraries]
 
 #### 4. **Setup**:
 ```bash
-pip install -r requirements.txt
+git clone repository
+catkin build
 ```
 
 #### 5. **Execution**:
 ```bash
-python main.py --config=configs/default.yaml
+rosrun phers_framework hand_tune_controlle.py
 ```
 
 #### 6. **Results**:
 From our reproduction, we achieved:
 
-- Task A: XX% accuracy
+- Static Obstacle Stage , HT-1 : XX% accuracy
 - Task B: XX% accuracy
 
 Comparison with original paper's results:
