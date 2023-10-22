@@ -39,3 +39,58 @@ class AbstractEnvRunner(object):
 
     def run(self):
         raise NotImplementedError
+    
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+
+class PheroTurtlebotPolicy(nn.Module):
+    def __init__(self, ob_space, ac_space, nbatch, nsteps, reuse=False, deterministic=False):
+        super(PheroTurtlebotPolicy, self).__init__()
+        
+        # Assuming make_pdtype is a function that provides information about the action space
+        # This may need modification based on the actual function's functionality
+        self.pdtype = make_pdtype(ac_space)
+
+        self.fc1 = nn.Linear(13, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, 128)
+
+        # For value function
+        self.value_head = nn.Linear(128, 1)
+
+        # For action distribution
+        # TODO: Modify this according to the actual action space. The below is just a placeholder
+        self.action_head = nn.Linear(128, ac_space.shape[0])
+
+    def forward(self, phero):
+        x = F.relu(self.fc1(phero))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        
+        # You might need to adjust these based on the action space
+        action_probs = F.softmax(self.action_head(x), dim=-1)
+        value = self.value_head(x)
+        
+        return action_probs, value
+
+    def step(self, ob):
+        phero = torch.tensor(ob, dtype=torch.float32)
+        action_probs, value = self.forward(phero)
+        
+        # Sample action
+        if deterministic:
+            action = action_probs.argmax(dim=-1)
+        else:
+            action = torch.multinomial(action_probs, 1)
+
+        # Calculate log probability
+        neglogp = -torch.log(action_probs[range(len(action_probs)), action])
+        
+        return action, value, None, neglogp
+
+    def value(self, ob):
+        phero = torch.tensor(ob, dtype=torch.float32)
+        _, value = self.forward(phero)
+        return value
