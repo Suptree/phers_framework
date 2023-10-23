@@ -19,14 +19,34 @@ class GazeboEnvironment:
         self.state = None
         self.reward = 0
         self.done = False
+
+        # 非同期更新
         self.robot_position = None
         self.robot_linear_velocity = None
         self.robot_angular_velocity = None
         self.robot_angle = None
         self.pheromone_value = None
+
+        # 障害物の位置
+        self.obstacle = [[0.4, 0.0], [-0.4, 0.0], [0.0, 0.4], [0.0, -0.4]]
+
+        # ゴールの位置
         self.goal_pos_x = 0
         self.goal_pos_y = 0
-        self.distance_to_goal = 0
+        self.prev_distance_to_goal = 0
+
+
+
+
+        # Flags
+        self.is_collided = False # 衝突したかどうか
+        self.is_goal = False   # ゴールしたかどうか
+        self.is_timeout = False # タイムアウトしたかどうか
+        
+        # Initialise simulation
+        self.reset_timer = rospy.get_time()
+
+
 
         # ROSのノードの初期化
         rospy.init_node(f'{self.robot_name}_gazebo_environment', anonymous=True)
@@ -46,6 +66,7 @@ class GazeboEnvironment:
         self.sub_phero = rospy.Subscriber(
             '/pheromone_value', Float32MultiArray, self.pheromone_callback)
 
+
     # Gazeboのモデルの状態を取得するためのコールバック関数
     def gazebo_model_state_callback(self, model_states):
         robot_index = model_states.name.index('hero_0')
@@ -58,9 +79,10 @@ class GazeboEnvironment:
         robot_twist = model_states.twist[robot_index]
 
         self.robot_position = pose.position
-        self.robot_angle = angles[2]    
+        self.robot_angle = angles[2]
         self.robot_linear_velocity = robot_twist.linear
         self.robot_angular_velocity = robot_twist.angular
+
     # pheromoneの値を取得するためのコールバック関数
     def pheromone_callback(self, phero):
         self.pheromone_value = phero.data
@@ -75,75 +97,75 @@ class GazeboEnvironment:
         self.cmd_vel_pub.publish(twist)
         time.sleep(0.2)
 
-        print('Gazebo Env : action: ', action)
-        print("Gazebo Env : self.robot_position( after step ): \n", self.robot_position)
+        # アクション後の環境の状態を取得, 衝突判定やゴール判定も行う
+        next_state_pheromone_value, next_state_distance_to_goal, next_state_angle_to_goal, next_state_robot_linear_velocity_x, next_state_robot_angular_velocity_z = self.get_next_state()
+
+        # 報酬の計算
+        reward = self.calculate_rewards(next_state_distance_to_goal,next_state_robot_angular_velocity_z)
+
+        # タスクの終了判定
+        self.done = self.is_collided or self.is_goal or self.is_timeout
 
         # 状態の更新
-        next_state = self.get_next_state()
+        self.prev_distance_to_goal = next_state_distance_to_goal
 
-        reward = self.calculate_rewards(next_state)
+        # 観測情報をstateに格納
+        self.state = next_state_pheromone_value + [next_state_distance_to_goal, next_state_angle_to_goal, next_state_robot_linear_velocity_x, next_state_robot_angular_velocity_z]
 
-        return next_state, reward, self.done
-
-        # # 報酬の計算
-        # distance_to_goal = np.sqrt((self.state[0] - self.state[2])**2 + (self.state[1] - self.state[3])**2)
-        # self.reward = -distance_to_goal
-
-        # # タスクの終了判定
-        # if distance_to_goal < 0.5:
-        #     self.done = True
-
-        # return np.array(self.state), self.reward, self.done
+        return self.state, reward, self.done
 
 
-
-        
-    
-    def calculate_rewards(self, next_state):
+    def calculate_rewards(self, next_state_distance_to_goal,next_state_robot_angular_velocity_z):
         Rw = -1.0  # angular velocity penalty constant
         Ra = 30.0  # goal reward constant
         Rc = -30.0 # collision penalty constant
-        w_m = 0.2  # maximum allowable angular velocity
+        w_m = 0.8  # maximum allowable angular velocity
         wd_p = 4.0 # weight for positive distance
         wd_n = 6.0 # weight for negative distance
 
-        next_state_robot_pos_x, next_state_robot_pos_y, next_state_robot_angle, next_state_distance_to_goal, next_state_angle_to_goal, next_state_linear_x, next_state_angular_z = next_state
+        # アクション後のロボットとゴールまでの距離の差分
+        goal_to_distance_diff = self.prev_distance_to_goal - next_state_distance_to_goal
 
-        goal_to_distance_diff = self.distance_to_goal - next_state_distance_to_goal
-
-        r_g = Ra if next_state_distance_to_goal < 0.5 else 0  # goal reward
-        r_c = 0  # collision penalty（衝突検出ロジックを追加する場合は、この部分を更新してください。
+        r_g = Ra if self.is_goal else 0 # goal reward
+        r_c = Rc if self.is_collided else 0  # collision penalty
         r_d = wd_p * goal_to_distance_diff if goal_to_distance_diff > 0 else wd_n * goal_to_distance_diff
-        r_w = Rw if abs(next_state_angular_z) > w_m else 0  # angular velocity penalty
+        r_w = Rw if next_state_robot_angular_velocity_z > w_m else 0  # angular velocity penalty
 
         return r_g + r_c + r_d + r_w
 
     def get_next_state(self):
-        # 現在の変数の格納
-        next_state_robot_pos_x = self.robot_position.x
-        next_state_robot_pos_y = self.robot_position.y
-        next_state_robot_angle = self.robot_angle
-        next_state_linear_x = self.robot_linear_velocity.x
-        next_state_angular_z = self.robot_angular_velocity.z
 
         # ゴールまでの距離
-        next_state_distance_to_goal = math.sqrt((next_state_robot_pos_x-self.goal_pos_x)**2
-                             + (next_state_robot_pos_y-self.goal_pos_y)**2)
+        next_state_distance_to_goal = math.sqrt((self.robot_position.x - self.goal_pos_x)**2
+                             + (self.robot_position.y - self.goal_pos_y)**2)
         
         # ロボットの現在の体の向きのベクトルとロボットの現在の位置からゴールまでのベクトルのなす角度
-        next_state_angle_to_goal = math.atan2(self.goal_pos_y - next_state_robot_pos_y,
-                                   self.goal_pos_x - next_state_robot_pos_x) - next_state_robot_angle
+        next_state_angle_to_goal = math.atan2(self.goal_pos_y - self.robot_position.y,
+                                   self.goal_pos_x - self.robot_position.x) - self.robot_angle
+        ## 角度を-πからπの範囲に正規化
+        if next_state_angle_to_goal < -math.pi:
+            next_state_angle_to_goal += 2 * math.pi
+        elif next_state_angle_to_goal > math.pi:
+            next_state_angle_to_goal -= 2 * math.pi
 
+        # 障害物との衝突判定
+        self.is_collided = self.check_collision_to_obstacle()
+        
+        # ゴール判定
+        self.is_goal = next_state_distance_to_goal < 0.02
 
-        return [next_state_robot_pos_x,
-                next_state_robot_pos_y,
-                next_state_robot_angle,
-                next_state_distance_to_goal,
-                next_state_angle_to_goal,
-                next_state_linear_x,
-                next_state_angular_z]
+        # タイムアウト判定
+        self.is_timeout = rospy.get_time() - self.reset_timer > 40.0
+
+        return self.pheromone_value, next_state_distance_to_goal, next_state_angle_to_goal, self.robot_linear_velocity.x, self.robot_angular_velocity.z
     
 
+    def check_collision_to_obstacle(self):
+        for obs in self.obstacle:
+            distance_to_obstacle = math.sqrt((self.robot_position.x - obs[0])**2 + (self.robot_position.y - obs[1])**2)
+            if distance_to_obstacle <  0.059:
+                return True
+        return False
 
     # 環境のリセット
     def reset(self, seed=None):
@@ -165,15 +187,27 @@ class GazeboEnvironment:
         # シミュレーションが初期化されるまで待機
         while before == self.robot_position:
             time.sleep(1)
+        
+        # フラグのリセット
+        self.is_collided = False
+        self.is_goal = False
+        self.is_timeout = False
 
         # 変数の初期化
         self.reward = 0
         self.distance_to_goal = math.sqrt((self.robot_position.x-self.goal_pos_x)**2
                              + (self.robot_position.y-self.goal_pos_y)**2)
+        self.reset_timer = rospy.get_time()
+
         # ロボットの現在の体の向きのベクトルとロボットの現在の位置からゴールまでのベクトルのなす角度
         angle_to_goal = math.atan2(self.goal_pos_y - self.robot_position.y,
                                    self.goal_pos_x - self.robot_position.x) - self.robot_angle
+        ## 角度を-πからπの範囲に正規化
+        if angle_to_goal < -math.pi:
+            angle_to_goal += 2 * math.pi
+        elif angle_to_goal > math.pi:
+            angle_to_goal -= 2 * math.pi
 
         self.done = False
-        self.state = [self.distance_to_goal, angle_to_goal,self.robot_linear_velocity.x, self.robot_angular_velocity.z]
+        self.state = self.pheromone_value + [self.distance_to_goal, angle_to_goal,self.robot_linear_velocity.x, self.robot_angular_velocity.z]
         return self.state
