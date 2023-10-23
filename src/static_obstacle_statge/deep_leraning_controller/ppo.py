@@ -212,9 +212,13 @@ total_iterations = 100
 
 # env = gym.make('Pendulum-v1', render_mode="rgb_array")
 env = gazebo_env.GazeboEnvironment("hero_0")
-
-while(True):
-    env.step([0.01,0])
+env.reset()
+for i in range(100):
+    next_state = env.step([0.01,0])
+    print("PPO : next_state: ", next_state)
+    if i == 10:
+        state = env.reset()
+        print("PPO : reset state: ", state)
     
 # set_seeds(1023, env)
 
