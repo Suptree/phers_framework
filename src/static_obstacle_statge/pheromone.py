@@ -2,6 +2,7 @@
 
 import rospy
 from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Empty
 import math
 from gazebo_msgs.msg import ModelStates
 import numpy as np
@@ -41,6 +42,10 @@ class Node:
         # 取得すると, pheromoneCallback関数が呼び出される
         self.subscribe_pose = rospy.Subscriber(
             "/gazebo/model_states", ModelStates, self.pheromoneCallback
+        )
+        # リセット信号のSubscriber
+        self.subscribe_reset = rospy.Subscriber(
+            "/pheromone_reset_signal", Empty, self.resetPheromoneMap
         )
 
         self.marker_pub = rospy.Publisher(
@@ -133,6 +138,20 @@ class Node:
                 )
         # print("=======================")
         self.publish_pheromone.publish(pheromone_value)
+
+    def resetPheromoneMap(self, msg):
+        self.pheromone.reset()
+        # 経過時間
+        self.start_time = time.process_time()
+
+        # オブジェクトの周りにフェロモンを配置
+        # Refactor repetitive code
+        obstacles = [(0.0, 0.4), (0.0, -0.4), (0.4, 0.0), (-0.4, 0.0)]
+        for obs in obstacles:
+            x_index, y_index = self.posToIndex(obs[0], obs[1])
+            self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.06)
+
+        self.publish_markers()
 
 class Pheromone:
     def __init__(self, grid_map_size=0, resolution=0, evaporation=0.0, diffusion=0.0):
@@ -271,7 +290,9 @@ class Pheromone:
             self.grid = np.load(f)
         # print("The pheromone matrix {} is successfully loaded".
         #       format(file_name))
-
+    def reset(self):
+        self.grid = np.zeros((self.num_cell, self.num_cell))
+        self.grid_copy = np.zeros((self.num_cell, self.num_cell))
 
 if __name__ == "__main__":
     rospy.init_node("Pheromone_Framework")
