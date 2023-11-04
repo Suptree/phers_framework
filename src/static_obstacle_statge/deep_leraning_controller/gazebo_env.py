@@ -141,7 +141,7 @@ class GazeboEnvironment:
 
         
         # 報酬の計算
-        reward = self.calculate_rewards(next_state_distance_to_goal,next_state_robot_angular_velocity_z)
+        reward, baseline_reward = self.calculate_rewards(next_state_distance_to_goal,next_state_robot_angular_velocity_z)
         # print("reward: ", reward)
         # タスクの終了判定
         self.done = self.is_collided or self.is_goal or self.is_timeout
@@ -154,13 +154,14 @@ class GazeboEnvironment:
         # 観測情報をstateに格納
         self.state = list(next_state_pheromone_value) + [next_state_distance_to_goal, next_state_angle_to_goal, next_state_robot_linear_velocity_x, next_state_robot_angular_velocity_z]
 
-        return self.state, reward, self.done
+        return self.state, reward, self.done, baseline_reward
 
 
     def calculate_rewards(self, next_state_distance_to_goal,next_state_robot_angular_velocity_z):
         Rw = -1.0  # angular velocity penalty constant
         Ra = 30.0  # goal reward constant
         Rc = -30.0 # collision penalty constant
+        Rt = -1.0  # time penalty
         w_m = 0.8  # maximum allowable angular velocity
         wd_p = 4.0 # weight for positive distance
         wd_n = 6.0 # weight for negative distance
@@ -172,8 +173,14 @@ class GazeboEnvironment:
         r_c = Rc if self.is_collided else 0  # collision penalty
         r_d = wd_p * goal_to_distance_diff if goal_to_distance_diff > 0 else wd_n * goal_to_distance_diff
         r_w = Rw if abs(next_state_robot_angular_velocity_z) > w_m else 0  # angular velocity penalty
+        r_t = Rt
 
-        return r_g + r_c + r_d + r_w
+        reward = r_g + r_c + r_d + r_w + r_t
+
+        base_r_d = 4.0 * goal_to_distance_diff if goal_to_distance_diff > 0 else wd_n * goal_to_distance_diff
+        baseline_reward = r_g + r_c + base_r_d + r_w
+
+        return reward, baseline_reward
 
     def get_next_state(self):
 

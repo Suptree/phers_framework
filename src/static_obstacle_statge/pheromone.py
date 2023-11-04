@@ -16,7 +16,7 @@ class Node:
     def __init__(self):
         # pheromonクラスのインスタンス生成
         self.pheromone = Pheromone(
-            grid_map_size=4, resolution=50, evaporation=0.0, diffusion=0.0
+            grid_map_size=16, resolution=50, evaporation=0.0, diffusion=0.0
         )
 
         # フェロモンの最大値と最小値を設定

@@ -128,9 +128,9 @@ class ActorNet(nn.Module):
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
         linear_mean = 0.2 * torch.sigmoid(self.fc4_linear_mean(x))
-        linear_std = F.softplus(self.fc4_linear_std(x))
+        linear_std = 0.05 * F.softplus(self.fc4_linear_std(x))
         angular_mean = torch.tanh(self.fc4_angular_mean(x))
-        angular_std = F.softplus(self.fc4_angular_std(x))
+        angular_std = 0.5 * F.softplus(self.fc4_angular_std(x))
         return linear_mean, linear_std, angular_mean, angular_std
 
 class CriticNet(nn.Module):
@@ -179,7 +179,13 @@ class PPOAgent:
         self.advantage_mean_history = []
         self.advantage_variance_history = []
         self.entropy_history = []
+        self.linear_action_history = []
+        self.linear_action_mean_history = []
+        self.linear_action_variance_history = []
         self.linear_entropy_history = []
+        self.angular_action_history = []
+        self.angular_action_mean_history = []
+        self.angular_action_variance_history = []
         self.angular_entropy_history = []
         self.mean_entropy_per_iteration = []
         self.linear_mean_entropy_per_iteration = []
@@ -191,6 +197,11 @@ class PPOAgent:
     def get_action(self, state):
         state = torch.tensor(state, device=device, dtype=torch.float32)
         linear_mean, linear_std, angular_mean, angular_std = self.actor(state)
+        self.linear_action_mean_history.append(linear_mean.item())
+        self.linear_action_variance_history.append(linear_std.item())
+        self.angular_action_mean_history.append(angular_mean.item())
+        self.angular_action_variance_history.append(angular_std.item())
+
         
         linear_distribution = torch.distributions.Normal(linear_mean, linear_std)
         angular_distribution = torch.distributions.Normal(angular_mean, angular_std)
@@ -203,6 +214,9 @@ class PPOAgent:
         linear_action = linear_distribution.sample()
         angular_action = angular_distribution.sample()
         
+        self.linear_action_history.append(linear_action.item())
+        self.angular_action_history.append(angular_action.item())
+
         linear_log_prob_old = linear_distribution.log_prob(linear_action)
         angular_log_prob_old = angular_distribution.log_prob(angular_action)
 
@@ -306,10 +320,10 @@ class PPOAgent:
     def plot_and_save(self, iteration):
         filename = f"./ppo_avoid/{self.start_time}_training_plot_{iteration}.png"
 
-        plt.figure(figsize=(18, 12))
+        plt.figure(figsize=(32, 18))
 
         # 累積報酬のプロット
-        plt.subplot(3, 3, 1)
+        plt.subplot(3, 4, 1)
         reward_window_size = 10
         plt.plot(self.reward_history,label="reward", color='green')
         plt.plot(self.compute_moving_average(self.reward_history, window_size=reward_window_size),label="moving reward", color='red')
@@ -320,7 +334,7 @@ class PPOAgent:
         plt.grid(True)
 
         # アクターの損失のプロット
-        plt.subplot(3, 3, 2)
+        plt.subplot(3, 4, 2)
         plt.plot(self.losses_actors)
         plt.title("Actor Loss")
         plt.xlabel("Training Step")
@@ -328,7 +342,7 @@ class PPOAgent:
         plt.grid(True)
 
         # クリティックの損失のプロット
-        plt.subplot(3, 3, 3)
+        plt.subplot(3, 4, 3)
         plt.plot(self.losses_critics)
         plt.title("Critic Loss")
         plt.xlabel("Training Step")
@@ -336,7 +350,7 @@ class PPOAgent:
         plt.grid(True)
 
         # アドバンテージの平均のプロット
-        plt.subplot(3, 3, 4)
+        plt.subplot(3, 4, 4)
         plt.plot(self.advantage_mean_history)
         plt.title("Average Advantage")
         plt.xlabel("Iteration")
@@ -344,7 +358,7 @@ class PPOAgent:
         plt.grid(True)
 
         # アドバンテージの分散のプロット
-        plt.subplot(3, 3, 5)
+        plt.subplot(3, 4, 5)
         plt.plot(self.advantage_variance_history)
         plt.title("Variance of Advantage")
         plt.xlabel("Iteration")
@@ -360,7 +374,7 @@ class PPOAgent:
         # plt.grid(True)
 
         # イテレーションごとのエントロピーの平均のプロット
-        plt.subplot(3, 3, 6)
+        plt.subplot(3, 4, 6)
         plt.plot(self.linear_mean_entropy_per_iteration, label="linear", color='lime')
         plt.plot(self.angular_mean_entropy_per_iteration, label="angular", color='red')
         plt.title("Mean Entropy per Iteration")
@@ -370,11 +384,48 @@ class PPOAgent:
         plt.grid(True)
 
         #イテレーションごとのクリップされた個数のプロット
-        plt.subplot(3, 3, 7)
+        plt.subplot(3, 4, 7)
         plt.plot(self.clipped_ratios_per_iteration)
         plt.title("Clipped Count per Iteration")
         plt.xlabel("Iteration")
         plt.ylabel("Clipped Count")
+        plt.grid(True)
+
+        # linear_actionの平均とサンプリングされた値のプロット
+        plt.subplot(3, 4, 8)
+        plt.plot(self.linear_action_history, label="sampled", color='lime')
+        plt.plot(self.linear_action_mean_history, label="mean", color='red')
+        plt.title("Linear Action")
+        plt.xlabel("Step")
+        plt.ylabel("Value")
+        plt.legend()
+        plt.grid(True)
+
+        # liner_actionの分散のプロット
+        plt.subplot(3, 4, 9)
+        plt.plot(self.linear_action_variance_history)
+        plt.title("Linear Action Variance")
+        plt.xlabel("Step")
+        plt.ylabel("Variance")
+        plt.grid(True)
+
+        # angular_actionの平均とサンプリングされた値のプロット
+        plt.subplot(3, 4, 10)
+        plt.plot(self.angular_action_history, label="sampled", color='lime')
+        plt.plot(self.angular_action_mean_history, label="mean", color='red')
+        plt.title("Angular Action")
+        plt.xlabel("Step")
+        plt.ylabel("Value")
+        plt.legend()
+        plt.grid(True)
+
+
+        # angular_actionの分散のプロット
+        plt.subplot(3, 4, 11)
+        plt.plot(self.angular_action_variance_history)
+        plt.title("Angular Action Variance")
+        plt.xlabel("Step")
+        plt.ylabel("Variance")
         plt.grid(True)
 
         # ハイパーパラメータのプロット
@@ -411,7 +462,14 @@ class PPOAgent:
             # len(self.value_function_history),
             len(self.linear_mean_entropy_per_iteration),
             len(self.angular_mean_entropy_per_iteration),
-            len(self.clipped_ratios_per_iteration)
+            len(self.clipped_ratios_per_iteration),
+            len(self.linear_action_mean_history),
+            len(self.linear_action_variance_history),
+            len(self.linear_action_history),
+            len(self.angular_action_mean_history),
+            len(self.angular_action_variance_history),
+            len(self.angular_action_history),
+            
             # len(self.clip_epsilon_history),
             # len(self.lr_actor_history),
             # len(self.lr_critic_history)
@@ -433,6 +491,12 @@ class PPOAgent:
         # clip_epsilon_history = self.clip_epsilon_history + [None] * (max_length - len(self.clip_epsilon_history))
         # lr_actor_history = self.lr_actor_history + [None] * (max_length - len(self.lr_actor_history))
         # lr_critic_history = self.lr_critic_history + [None] * (max_length - len(self.lr_critic_history))
+        linear_action_mean_history = self.linear_action_mean_history + [None] * (max_length - len(self.linear_action_mean_history))
+        linear_action_variance_history = self.linear_action_variance_history + [None] * (max_length - len(self.linear_action_variance_history))
+        linear_action_history = self.linear_action_history + [None] * (max_length - len(self.linear_action_history))
+        angular_action_mean_history = self.angular_action_mean_history + [None] * (max_length - len(self.angular_action_mean_history))
+        angular_action_variance_history = self.angular_action_variance_history + [None] * (max_length - len(self.angular_action_variance_history))
+        angular_action_history = self.angular_action_history + [None] * (max_length - len(self.angular_action_history))
 
         # データフレームの作成
         data = {
@@ -447,6 +511,12 @@ class PPOAgent:
             'Linear Mean Entropy per Iteration': linear_mean_entropy_per_iteration,
             'Angular Mean Entropy per Iteration': angular_mean_entropy_per_iteration,
             'Clipped Count per Iteration': clipped_ratios_per_iteration,
+            'Linear Action Mean': linear_action_mean_history,
+            'Linear Action Variance': linear_action_variance_history,
+            'Linear Action': linear_action_history,
+            'Angular Action Mean': angular_action_mean_history,
+            'Angular Action Variance': angular_action_variance_history,
+            'Angular Action': angular_action_history,
             # 'Clip Epsilon': clip_epsilon_history,
             # 'Actor Learning Rate': lr_actor_history,
             # 'Critic Learning Rate': lr_critic_history,
@@ -497,9 +567,9 @@ for iteration in range(total_iterations):
             step_count += 1
             linear_action, angular_action, linear_log_prob_old, angular_log_prob_old = agent.get_action(state)
 
-            next_state, reward, done = env.step([linear_action,angular_action])
+            next_state, reward, done, baseline_reward = env.step([linear_action,angular_action])
 
-            total_reward += reward
+            total_reward += baseline_reward
 
             # 報酬の正規化
             # reward = (reward + 30.0) / (30.0 + 1e-8)

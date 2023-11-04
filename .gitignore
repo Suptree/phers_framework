@@ -1,7 +1,10 @@
 # Created by https://www.toptal.com/developers/gitignore/api/python,macos,linux,visualstudiocode,ros
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,macos,linux,visualstudiocode,ros
-
-### Linux ###
+*.png
+*.pt
+*.csv
+*vscode
+### Linux ###ffdg
 *~
 
 # temporary files which can be created if a process still has a handle open of a deleted file
