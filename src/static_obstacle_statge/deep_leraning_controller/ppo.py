@@ -117,20 +117,25 @@ class ActorNet(nn.Module):
         super().__init__()
         self.fc1 = nn.Linear(input_dim, 64)
         self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, 128)
-        self.fc4_linear_mean = nn.Linear(128, 1)
-        self.fc4_linear_std = nn.Linear(128, 1)
-        self.fc4_angular_mean = nn.Linear(128, 1)
-        self.fc4_angular_std = nn.Linear(128, 1)
+        self.fc3_linear_mean = nn.Linear(64, 1)
+        self.fc3_angular_mean = nn.Linear(64, 1)
+
+        self.log_std_linear = nn.Parameter(torch.zeros(1,1))
+        self.log_std_angular = nn.Parameter(torch.zeros(1,1))
+
+        for layer in self.modules():
+            if isinstance(layer, nn.Linear):
+                nn.init.orthogonal_(layer.weight)
+                layer.bias.data.zero_()
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        linear_mean = 0.2 * torch.sigmoid(self.fc4_linear_mean(x))
-        linear_std = 0.05 * F.softplus(self.fc4_linear_std(x))
-        angular_mean = torch.tanh(self.fc4_angular_mean(x))
-        angular_std = 0.5 * F.softplus(self.fc4_angular_std(x))
+        x = F.tanh(self.fc1(x))
+        x = F.tanh(self.fc2(x))
+        linear_mean = 0.2 * torch.sigmoid(self.fc3_linear_mean(x))
+        angular_mean = torch.tanh(self.fc3_angular_mean(x))
+        linear_std = self.log_std_linear.exp()
+        angular_std = self.log_std_angular.exp()
+
         return linear_mean, linear_std, angular_mean, angular_std
 
 class CriticNet(nn.Module):
@@ -138,21 +143,22 @@ class CriticNet(nn.Module):
         super().__init__()
         self.fc1 = nn.Linear(input_dim, 64)
         self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, 128)
-        self.fc4 = nn.Linear(128, 1)
-
+        self.fc3 = nn.Linear(64, 1)
+        for layer in self.modules():
+            if isinstance(layer, nn.Linear):
+                nn.init.orthogonal_(layer.weight)
+                layer.bias.data.zero_()
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        x = self.fc4(x)
+        x = F.tanh(self.fc1(x))
+        x = F.tanh(self.fc2(x))
+        x = self.fc3(x)
         return x
     
 class PPOAgent:
     def __init__(self):
         # hyperparameters
-        self.lr_actor = 5.5e-5
-        self.lr_critic = 5.5e-5
+        self.lr_actor = 5.5e-4
+        self.lr_critic = 5.5e-4
         self.gamma = 0.99
         self.gae_lambda = 0.95
         self.clip_epsilon = 0.2
@@ -393,7 +399,7 @@ class PPOAgent:
 
         # linear_actionの平均とサンプリングされた値のプロット
         plt.subplot(3, 4, 8)
-        plt.plot(self.linear_action_history, label="sampled", color='lime')
+        plt.scatter(range(len(self.linear_action_history)),self.linear_action_history, label="sampled", color='lime')
         plt.plot(self.linear_action_mean_history, label="mean", color='red')
         plt.title("Linear Action")
         plt.xlabel("Step")
@@ -411,7 +417,7 @@ class PPOAgent:
 
         # angular_actionの平均とサンプリングされた値のプロット
         plt.subplot(3, 4, 10)
-        plt.plot(self.angular_action_history, label="sampled", color='lime')
+        plt.scatter(range(len(self.angular_action_history)),self.angular_action_history, label="sampled", color='lime')
         plt.plot(self.angular_action_mean_history, label="mean", color='red')
         plt.title("Angular Action")
         plt.xlabel("Step")
