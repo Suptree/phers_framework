@@ -23,8 +23,8 @@ class Actor(nn.Module):
         mean = F.tanh(self.fc3(x))
         
         std = self.log_std.exp().expand_as(mean)
-        std[0] *= 0.3
-        std[1] *= 0.1
+
+        # std = torch.exp(self.log_std) * torch.tensor([0.3, 0.1])
         
         return mean, std
 

@@ -61,7 +61,7 @@ agent = PPOAgent(env_name="gazebo_env_avoidance",
                  entropy_coefficient=0.01, 
                  device=device)
 agent.save_hyperparameters()
-
+signal.signal(signal.SIGINT, exit)
 for iteration in range(total_iterations):
     print("+++++++++++++++++++  iteration: {}++++++++++++++".format(iteration))
 
@@ -92,7 +92,7 @@ for iteration in range(total_iterations):
         agent.logger.reward_history.append(total_reward)
         agent.trajectory_buffer.add_trajectory(episode_data)
         
-        if step_count >= 2048:
+        if step_count >= 512:
             break
     agent.compute_advantages_and_add_to_buffer()
         
@@ -123,3 +123,6 @@ for iteration in range(total_iterations):
         agent.logger.plot_graph(iteration)    
         agent.logger.save_csv()
 
+def exit(signal, frame):
+    print("\nCtrl+C detected. Saving training data and exiting...")    
+    sys.exit(0)
