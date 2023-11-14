@@ -29,10 +29,6 @@ class GazeboEnvironment:
         self.robot_linear_velocity = None
         self.robot_angular_velocity = None
         self.robot_angle = None
-        self.pheromone_value = None
-
-        # 障害物の位置
-        self.obstacle = [[0.4, 0.0], [-0.4, 0.0], [0.0, 0.4], [0.0, -0.4]]
 
         # ゴールの位置
         self.goal_pos_x = 0
@@ -66,10 +62,10 @@ class GazeboEnvironment:
             '/gazebo/model_states', ModelStates, self.gazebo_model_state_callback)
         
         # pheromoneの値を取得するためのサブスクライバの設定
-        self.sub_phero = rospy.Subscriber(
-            '/pheromone_value', Float32MultiArray, self.pheromone_callback)
-        # pheromoneの値をリセットするためのパブリッシャの設定
-        self.reset_pheromone_pub = rospy.Publisher('/pheromone_reset_signal', EmptyMsg, queue_size=1)
+        # self.sub_phero = rospy.Subscriber(
+        #     '/pheromone_value', Float32MultiArray, self.pheromone_callback)
+        # # pheromoneの値をリセットするためのパブリッシャの設定
+        # self.reset_pheromone_pub = rospy.Publisher('/pheromone_reset_signal', EmptyMsg, queue_size=1)
 
         # マーカーを表示するためのパブリッシャの設定        
         self.marker_pub = rospy.Publisher('visualization_marker', Marker, queue_size=10)
@@ -119,25 +115,6 @@ class GazeboEnvironment:
         
         # ゴールとの角度を度数法にしてプリント
 
-        # フェロモンを読み込んだ場合は緑色にする
-        if sum(next_state_pheromone_value) > 0:
-            if self.robot_color != "GREEN":
-                self.robot_color = "GREEN"
-                color = ColorRGBA()
-                color.r = 0
-                color.g = 255
-                color.b = 0
-                color.a = 255
-                self.pub_led.publish(color)
-        else: # pheromone == 0
-            if self.robot_color != "CYEAN":
-                self.robot_color = "CYEAN"
-                color = ColorRGBA()
-                color.r = 0
-                color.g = 160
-                color.b = 233
-                color.a = 255
-                self.pub_led.publish(color)
 
         
         # 報酬の計算
@@ -159,16 +136,15 @@ class GazeboEnvironment:
 
     def calculate_rewards(self, next_state_distance_to_goal,next_state_robot_angular_velocity_z):
         Rw = -1.0  # angular velocity penalty constant
-        Ra = 30.0  # goal reward constant
-        Rc = -30.0 # collision penalty constant
-        Rt = -1.0  # time penalty
-        w_m = 0.8  # maximum allowable angular velocity
-        wd_p = 4.0 # weight for positive distance
-        wd_n = 6.0 # weight for negative distance
+        Ra = 100.0  # goal reward constant
+        Rc = -50.0 # collision penalty constant
+        Rt = -0.05  # time penalty
+        w_m = 0.08  # maximum allowable angular velocity
+        wd_p = 5.0 # weight for positive distance
+        wd_n = 10.0 # weight for negative distance
 
         # アクション後のロボットとゴールまでの距離の差分
-        goal_to_distance_diff = 100.0 * (self.prev_distance_to_goal - next_state_distance_to_goal)
-        base_goal_to_distance_diff = self.prev_distance_to_goal - next_state_distance_to_goal
+        goal_to_distance_diff = self.prev_distance_to_goal - next_state_distance_to_goal
 
         r_g = Ra if self.is_goal else 0 # goal reward
         r_c = Rc if self.is_collided else 0  # collision penalty
@@ -178,8 +154,7 @@ class GazeboEnvironment:
 
         reward = r_g + r_c + r_d + r_w + r_t
 
-        base_r_d = 4.0 * base_goal_to_distance_diff if base_goal_to_distance_diff > 0 else wd_n * base_goal_to_distance_diff
-    
+        base_r_d = 4.0 * goal_to_distance_diff if goal_to_distance_diff > 0 else wd_n * goal_to_distance_diff
         baseline_reward = r_g + r_c + base_r_d + r_w
 
         return reward, baseline_reward
@@ -199,18 +174,15 @@ class GazeboEnvironment:
         elif next_state_angle_to_goal > math.pi:
             next_state_angle_to_goal -= 2 * math.pi
 
-        # 障害物との衝突判定
-        self.is_collided = self.check_collision_to_obstacle()
         
         # ゴール判定
         self.is_goal = self.check_goal()
-        # if next_state_distance_to_goal <= 0.02:
-        #     self.is_goal = True
+
 
         # タイムアウト判定
         self.is_timeout = rospy.get_time() - self.reset_timer > 40.0
 
-        return self.pheromone_value, next_state_distance_to_goal, next_state_angle_to_goal, self.robot_linear_velocity.x, self.robot_angular_velocity.z
+        return next_state_distance_to_goal, next_state_angle_to_goal, self.robot_position.x, self.robot_position.y, self.robot_linear_velocity.x, self.robot_angular_velocity.z
     
     # ゴールに到達したかどうか
     def check_goal(self):
@@ -301,8 +273,7 @@ class GazeboEnvironment:
             angle_to_goal += 2 * math.pi
         elif angle_to_goal > math.pi:
             angle_to_goal -= 2 * math.pi
-        # フェロモンマップをリセット
-        self.reset_pheromone_pub.publish(EmptyMsg())
+
         # ゴールのマーカーを表示
         self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
 

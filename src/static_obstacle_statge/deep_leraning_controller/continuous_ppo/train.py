@@ -57,7 +57,7 @@ agent = PPOAgent(env_name="gazebo_env_avoidance",
                  gae_lambda=0.95, 
                  clip_epsilon=0.2, 
                  buffer_size=4096, 
-                 batch_size=64, 
+                 batch_size=512,
                  entropy_coefficient=0.01, 
                  device=device)
 agent.save_hyperparameters()
@@ -92,12 +92,12 @@ for iteration in range(total_iterations):
         agent.logger.reward_history.append(total_reward)
         agent.trajectory_buffer.add_trajectory(episode_data)
         
-        if step_count >= 512:
+        if step_count >= 4096:
             break
     agent.compute_advantages_and_add_to_buffer()
         
     # パラメータの更新
-    epochs = 10
+    epochs = 3
     for epoch in range(epochs):
         # ミニバッチを取得
         state, action, log_prob_old, reward, next_state, done, advantage = agent.replay_memory_buffer.get_minibatch()

@@ -63,7 +63,7 @@ class Logger:
         plt.title("Episode Rewards")
         plt.xlabel("Episode")
         plt.ylabel("Total Reward")
-        plt.legend()
+        plt.legend(loc='upper left')
         plt.grid(True)
 
 
@@ -113,7 +113,7 @@ class Logger:
         plt.title("Learning Rate")
         plt.xlabel("Iteration")
         plt.ylabel("Learning Rate")
-        plt.legend()
+        plt.legend(loc='upper left')
         plt.grid(True)
 
         # アクションの平均とサンプリングのプロット
@@ -124,7 +124,7 @@ class Logger:
         plt.xlabel("Step")
         plt.ylabel("Action Values")
         plt.grid(True)
-        plt.legend()
+        plt.legend(loc='upper left')
 
         # アクションの標準偏差のプロット
         plt.subplot(3, 4, 9)
@@ -142,7 +142,7 @@ class Logger:
         plt.xlabel("Step")
         plt.ylabel("Action Values")
         plt.grid(True)
-        plt.legend()
+        plt.legend(loc='upper left')
 
         # アクションの標準偏差のプロット
         plt.subplot(3, 4, 11)

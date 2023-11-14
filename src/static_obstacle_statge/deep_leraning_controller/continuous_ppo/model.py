@@ -24,7 +24,8 @@ class Actor(nn.Module):
         
         std = self.log_std.exp().expand_as(mean)
 
-        # std = torch.exp(self.log_std) * torch.tensor([0.3, 0.1])
+        std[0] *= 0.05
+        std[1] *= 0.1
         
         return mean, std
 

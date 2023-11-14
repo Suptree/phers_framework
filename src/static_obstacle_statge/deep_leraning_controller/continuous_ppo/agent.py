@@ -57,9 +57,6 @@ class PPOAgent:
         with torch.no_grad():
             action_mean, action_std = self.actor(state)
         
-        action_std[0] *= 0.05
-        action_std[1] *= 0.05
-        
         # ガウス分布を作成
         action_distribution = torch.distributions.Normal(action_mean, action_std)
         self.logger.entropy_history.append(action_distribution.entropy().mean().item())
