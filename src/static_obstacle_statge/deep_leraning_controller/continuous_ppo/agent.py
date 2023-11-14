@@ -56,7 +56,7 @@ class PPOAgent:
         state = torch.tensor(state, device=self.device, dtype=torch.float32)
         with torch.no_grad():
             action_mean, action_std = self.actor(state)
-        
+
         # ガウス分布を作成
         action_distribution = torch.distributions.Normal(action_mean, action_std)
         self.logger.entropy_history.append(action_distribution.entropy().mean().item())
@@ -74,7 +74,7 @@ class PPOAgent:
         
         # LOGGER
         self.logger.linear_action_means_history.append(0.1*(1.0+action_mean[0].cpu().numpy()))
-        self.logger.linear_action_stds_history.append(0.1*(1.0+action_std[0].cpu().numpy()))
+        self.logger.linear_action_stds_history.append(action_std[0].cpu().numpy())
         self.logger.limear_action_samples_history.append(0.1*(1.0+action[0].cpu().numpy()))
         self.logger.angular_action_means_history.append(action_mean[1].cpu().numpy())
         self.logger.angular_action_stds_history.append(action_std[1].cpu().numpy())
