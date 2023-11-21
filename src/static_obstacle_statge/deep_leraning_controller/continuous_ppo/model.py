@@ -14,7 +14,7 @@ class Actor(nn.Module):
         self.fc2 = nn.Linear(in_features=64, out_features=64)
         self.fc3 = nn.Linear(in_features=64, out_features=self.n_actions)
 
-        self.log_std = nn.Parameter(torch.zeros(self.n_actions))
+        self.log_std = nn.Parameter(torch.full((self.n_actions,),-1.5))
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
