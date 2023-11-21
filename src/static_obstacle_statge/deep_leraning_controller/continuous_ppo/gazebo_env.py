@@ -180,9 +180,9 @@ class GazeboEnvironment:
 
         base_r_d = 4.0 * base_goal_to_distance_diff if base_goal_to_distance_diff > 0 else wd_n * base_goal_to_distance_diff
     
-        baseline_reward = r_g + r_c + base_r_d + r_w
+        # baseline_reward = r_g + r_c + base_r_d + r_w
 
-        return reward, baseline_reward
+        return reward, reward
 
     def get_next_state(self):
 
