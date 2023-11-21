@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import time
 from collections import deque
@@ -56,7 +56,7 @@ agent = PPOAgent(env_name="gazebo_env_avoidance",
                  gamma=0.99, 
                  gae_lambda=0.95, 
                  clip_epsilon=0.2, 
-                 buffer_size=4096, 
+                 buffer_size=10000, 
                  batch_size=512,
                  entropy_coefficient=0.01, 
                  device=device)
