@@ -105,7 +105,7 @@ class GazeboEnvironment:
         # ロボットに速度を設定
         v, w = action
         # vの値を0から0.2の範囲に収める
-        v = max(min(v, 0.2), 0,0)
+        v = max(min(v, 0.2), 0.0)
         # wの値を-1.0から1.0の範囲に収める
         w = max(min(w, 1.0), -1.0)
         twist = Twist()

@@ -73,9 +73,9 @@ class PPOAgent:
 
         
         # LOGGER
-        self.logger.linear_action_means_history.append(0.1*(1.0+action_mean[0].cpu().numpy()))
+        self.logger.linear_action_means_history.append(0.2*action_mean[0].cpu().numpy())
         self.logger.linear_action_stds_history.append(action_std[0].cpu().numpy())
-        self.logger.limear_action_samples_history.append(0.1*(1.0+action[0].cpu().numpy()))
+        self.logger.limear_action_samples_history.append(0.2*action[0].cpu().numpy())
         self.logger.angular_action_means_history.append(action_mean[1].cpu().numpy())
         self.logger.angular_action_stds_history.append(action_std[1].cpu().numpy())
         self.logger.angular_action_samples_history.append(action[1].cpu().numpy())
@@ -116,7 +116,7 @@ class PPOAgent:
         ratio = torch.exp(log_prob_new - log_prob_old)
         unprocessed_loss = ratio * advantage
         clipped_loss = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon) * advantage
-        loss =  -torch.min(unprocessed_loss, clipped_loss).mean()
+        loss =  -torch.min(unprocessed_loss, clipped_loss).mean() - self.entropy_coefficient * action_distribution.entropy().mean()
         return loss
 
     def compute_value_loss(self, state, reward, next_state, done):

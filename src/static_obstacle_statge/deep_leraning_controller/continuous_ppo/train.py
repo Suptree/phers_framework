@@ -79,7 +79,7 @@ for iteration in range(total_iterations):
             step_count += 1
             action, log_prob_old = agent.get_action(state)
 
-            next_state, reward, terminated, baseline_reward = env.step([(action[0]+1.0)*0.1,action[1]])
+            next_state, reward, terminated, baseline_reward = env.step([0.2 * action[0],action[1]])
 
             total_reward += baseline_reward            
             if terminated:
