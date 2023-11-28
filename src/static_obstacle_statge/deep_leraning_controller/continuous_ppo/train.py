@@ -48,7 +48,7 @@ set_seeds(1023)
 
 agent = PPOAgent(env_name="gazebo_env_avoidance",
                  n_iteration=total_iterations, 
-                 n_states=13, 
+                 n_states=4, 
                  action_bounds=[-1,1], 
                  n_actions=2,
                  actor_lr=3e-4, 
@@ -92,7 +92,7 @@ for iteration in range(total_iterations):
         agent.logger.reward_history.append(total_reward)
         agent.trajectory_buffer.add_trajectory(episode_data)
         
-        if step_count >= 4096:
+        if step_count >= 2048:
             break
     agent.compute_advantages_and_add_to_buffer()
         

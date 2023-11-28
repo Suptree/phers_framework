@@ -31,13 +31,16 @@ class PPOAgent:
         self.buffer_size = buffer_size # バッファサイズ
         self.batch_size = batch_size # バッチサイズ
         self.n_states = n_states # 状態の次元数
+        print("n_states: {}".format(self.n_states))
         self.action_bounds = action_bounds # 行動の最大値と最小値
         self.n_actions = n_actions # 行動の次元数
         self.entropy_coefficient = entropy_coefficient # エントロピー項の係数
         self.device = device # CPUかGPUか
 
         self.actor = Actor(n_states=self.n_states,n_actions=self.n_actions).to(self.device)
+        print("actor: {}".format(self.actor))
         self.critic = Critic(n_states=self.n_states).to(self.device)
+        print("critic: {}".format(self.critic))
 
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.actor_lr, eps=1e-5)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=self.critic_lr, eps=1e-5)
@@ -67,18 +70,20 @@ class PPOAgent:
         # ガウス分布でサンプリングときの確率密度の対数を計算
         log_prob_old = action_distribution.log_prob(action)
 
-        action = torch.tanh(action)
+        # action = torch.tanh(action)
 
-        log_prob_old -= torch.log(1 - action.pow(2) + 1e-6)
+        # log_prob_old -= torch.log(1 - action.pow(2) + 1e-6)
 
+        sample_action = min(max(action[0].item(), 0.0), 0.2)
+        sample_angular_action = min(max(action[1].item(), -1.0), 1.0)
         
         # LOGGER
-        self.logger.linear_action_means_history.append(0.2*action_mean[0].cpu().numpy())
+        self.logger.linear_action_means_history.append(action_mean[0].cpu().numpy())
         self.logger.linear_action_stds_history.append(action_std[0].cpu().numpy())
-        self.logger.limear_action_samples_history.append(0.2*action[0].cpu().numpy())
+        self.logger.limear_action_samples_history.append(sample_action)
         self.logger.angular_action_means_history.append(action_mean[1].cpu().numpy())
         self.logger.angular_action_stds_history.append(action_std[1].cpu().numpy())
-        self.logger.angular_action_samples_history.append(action[1].cpu().numpy())
+        self.logger.angular_action_samples_history.append(sample_angular_action)
 
         return action.cpu().numpy(), log_prob_old.cpu().numpy()
 
