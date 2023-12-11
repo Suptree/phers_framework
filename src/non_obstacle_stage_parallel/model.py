@@ -12,19 +12,23 @@ class Actor(nn.Module):
 
         self.fc1 = nn.Linear(in_features=self.n_states, out_features=64)
         self.fc2 = nn.Linear(in_features=64, out_features=64)
-        self.fc3 = nn.Linear(in_features=64, out_features=self.n_actions)
+        self.fc3 = nn.Linear(in_features=64, out_features=1)
 
-        # self.log_std = nn.Parameter(torch.zeros(self.n_actions))
-        self.log_std = nn.Parameter(torch.full((self.n_actions,),0.0))
+        self.log_std = nn.Parameter(torch.full((self.n_actions,),-2.0))
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
 
-        mean = F.tanh(self.fc3(x))
+        linear_mean = F.relu(self.fc3(x))
+        angular_mean = F.tanh(self.fc3(x))
+
+        mean = torch.cat((linear_mean, angular_mean), dim=-1)
+        
         std = self.log_std.exp().expand_as(mean)
         
         return mean, std
+
 
 
 class Critic(nn.Module):

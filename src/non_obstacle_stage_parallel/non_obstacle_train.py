@@ -15,7 +15,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from datetime import datetime
 import argparse
-import parallel_gazebo_env
+import parallel_gazebo_non_obstacle_env as gazebo_env
 import pandas as pd
 import torch.multiprocessing as mp
 from torch.multiprocessing import Manager
@@ -34,21 +34,20 @@ def set_seeds(seed_value):
     torch.cuda.manual_seed_all(seed_value)
 
 def main():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
 
     total_iterations = 50000
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 100  # 100イテレーションごとにモデルを保存
-    num_env = 8
+    num_env = 3
     seed_value = 1023
-
-    env = gym.make("BipedalWalker-v3")
         
     set_seeds(seed_value)
 
-    agent = PPOAgent(env_name="Parallel-Static-Obstacle-Avoidance",
+    agent = PPOAgent(env_name="Parallel-Non-Obstacle",
                     n_iteration=total_iterations, 
-                    n_states=13, 
+                    n_states=4, 
                     action_bounds=[-1, 1], 
                     n_actions=2, # 線形速度と角速度
                     actor_lr=3e-4, 
@@ -57,7 +56,7 @@ def main():
                     gae_lambda=0.95, 
                     clip_epsilon=0.2, 
                     buffer_size=50000, 
-                    batch_size=2048,
+                    batch_size=1024,
                     collect_step=512,
                     entropy_coefficient=0.01, 
                     device=device)
@@ -74,6 +73,8 @@ def main():
             tasks = [(i, seed_value+i+iteration, share_memory_actor) for i in range(num_env)]
             results = pool.starmap(agent.data_collection, tasks)
             
+            
+        print("コレクト終了")
         for result in results: 
             episode_data, rewards, entoripies, action_means, action_stds, action_samples = result
 

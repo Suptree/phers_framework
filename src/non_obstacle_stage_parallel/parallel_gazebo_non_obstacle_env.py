@@ -57,7 +57,7 @@ class GazeboEnvironment:
         # ロボットをコントロールするためのパブリッシャの設定
         self.cmd_vel_pub = rospy.Publisher(f'/{self.robot_name}/cmd_vel', Twist, queue_size=1)
 
-        # Gazeboのモデルの状態を設定するためのサービスの設定
+        # # Gazeboのモデルの状態を設定するためのサービスの設定
         rospy.wait_for_service('/gazebo/set_model_state')
         self.set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
 
@@ -66,10 +66,10 @@ class GazeboEnvironment:
             '/gazebo/model_states', ModelStates, self.gazebo_model_state_callback)
         
         # pheromoneの値を取得するためのサブスクライバの設定
-        self.sub_phero = rospy.Subscriber(
-            '/pheromone_value', Float32MultiArray, self.pheromone_callback)
+        # self.sub_phero = rospy.Subscriber(
+        #     '/pheromone_value', Float32MultiArray, self.pheromone_callback)
         # pheromoneの値をリセットするためのパブリッシャの設定
-        self.reset_pheromone_pub = rospy.Publisher('/pheromone_reset_signal', EmptyMsg, queue_size=1)
+        # self.reset_pheromone_pub = rospy.Publisher('/pheromone_reset_signal', EmptyMsg, queue_size=1)
 
         # マーカーを表示するためのパブリッシャの設定        
         self.marker_pub = rospy.Publisher('visualization_marker', Marker, queue_size=10)
@@ -176,12 +176,12 @@ class GazeboEnvironment:
         wd_n = 6.0 # weight for negative distance
 
         # アクション後のロボットとゴールまでの距離の差分
-        print("///////////////////////////////////////////")
-        print("self.prev_distance_to_goal: ", self.prev_distance_to_goal)
-        print("next_state_distance_to_goal: ", next_state_distance_to_goal)
-        print("self.prev_distance_to_goal - next_state_distance_to_goal: ", self.prev_distance_to_goal - next_state_distance_to_goal)
+        # print("///////////////////////////////////////////")
+        # print("self.prev_distance_to_goal: ", self.prev_distance_to_goal)
+        # print("next_state_distance_to_goal: ", next_state_distance_to_goal)
+        # print("self.prev_distance_to_goal - next_state_distance_to_goal: ", self.prev_distance_to_goal - next_state_distance_to_goal)
         goal_to_distance_diff = 100.0 * (self.prev_distance_to_goal - next_state_distance_to_goal)
-        print("500 * (self.prev_distance_to_goal - next_state_distance_to_goal): ", goal_to_distance_diff)
+        # print("100 * (self.prev_distance_to_goal - next_state_distance_to_goal): ", goal_to_distance_diff)
         base_goal_to_distance_diff = self.prev_distance_to_goal - next_state_distance_to_goal
 
         r_g = Ra if self.is_goal else 0 # goal reward
@@ -301,14 +301,12 @@ class GazeboEnvironment:
         self.goal_pos_x = self.id * 20.0 +  goal_r * math.cos(goal_radius) # 作業一時中断。環境の作成
         self.goal_pos_y = goal_r * math.sin(goal_radius)
 
-        # シミュレーションをリセット
-        rospy.wait_for_service('/gazebo/reset_simulation')
-        reset_simulation = rospy.ServiceProxy('/gazebo/reset_simulation', Empty)  # Emptyは適切なメッセージタイプに置き換えてください
-        reset_simulation()
+        # ロボットの位置をリセット
         before = self.robot_position
-
-        # シミュレーションが初期化されるまで待機
+        self.set_robot()
+        # ロボットの位置がリセットされるまで待機
         while before == self.robot_position:
+            print("waiting for reset robot position")
             time.sleep(1)
         
         # フラグのリセット
@@ -331,15 +329,46 @@ class GazeboEnvironment:
         elif angle_to_goal > math.pi:
             angle_to_goal -= 2 * math.pi
         # フェロモンマップをリセット
-        self.reset_pheromone_pub.publish(EmptyMsg())
+        # self.reset_pheromone_pub.publish(EmptyMsg())
         # ゴールのマーカーを表示
-        self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
+        if self.id == 0:
+            self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
 
         self.done = False
         self.state = [self.distance_to_goal, angle_to_goal,self.robot_linear_velocity.x, self.robot_angular_velocity.z]
 
         return self.state
-    
+    def set_robot(self):
+
+        state_msg = ModelState()
+        state_msg.model_name = self.robot_name
+        state_msg.pose.position.x = self.id * 20.0 + 0.0
+        state_msg.pose.position.y = 0.0
+        state_msg.pose.position.z = 0.2395
+        state_msg.pose.orientation.x = 0.0
+        state_msg.pose.orientation.y = 0.0
+        state_msg.pose.orientation.z = 0.0
+        state_msg.pose.orientation.w = 0.0
+        state_msg.twist.linear.x = 0.0
+        state_msg.twist.linear.y = 0.0
+        state_msg.twist.linear.z = 0.0
+        state_msg.twist.angular.x = 0.0
+        state_msg.twist.angular.y = 0.0
+        state_msg.twist.angular.z = 0.0
+
+        # Gazeboのモデルの状態を設定するためのサービスの設定
+        rospy.wait_for_service('/gazebo/set_model_state')
+        set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+
+        try:
+            self.set_model_state(state_msg)
+        except rospy.ServiceException as e:
+            print("Spawn URDF service call failed: {0}".format(e))
+        # try:
+        #     set_model_state(state_msg)
+        # except rospy.ServiceException as e:
+        #     print("Spawn URDF service call failed: {0}".format(e))
+
 
     def set_goal_marker(self, x, y):
         """

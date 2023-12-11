@@ -4,7 +4,8 @@ from logger import Logger
 from datetime import datetime
 import torch
 import torch.nn as nn
-import gymnasium as gym
+import parallel_gazebo_non_obstacle_env as gazebo_env
+
 import numpy as np
 import torch.optim as optim
 import random
@@ -69,15 +70,16 @@ class PPOAgent:
         # ガウス分布でサンプリングときの確率密度の対数を計算
         log_prob_old = action_distribution.log_prob(action)
 
-        action = torch.tanh(action)
-
-        log_prob_old -= torch.log(1 - action.pow(2) + 1e-6)
+        # 線形速度の値を0~1の範囲に変換 : -1~1ではないのは、NNの出力層がReLUなので正の値を出力するため
+        action[0] = torch.tanh(action[0])
+        # 行動の確率密度の対数の計算
+        log_prob_old[0] -= torch.log(1 - action[0].pow(2) + 1e-6)
 
         # LOGGER - 新しいリスト構造を使用
-        if id == 0:
-            logger_action_mean = action_mean.cpu().numpy()
-            logger_action_std = action_std.cpu().numpy()
-            logger_action = action.cpu().numpy()
+        # if id == 0:
+        logger_action_mean = action_mean.cpu().numpy()
+        logger_action_std = action_std.cpu().numpy()
+        logger_action = action.cpu().numpy()
             # for i in range(self.n_actions):
             #     shared_resources["action_means_history"][i].append(action_mean[i].cpu().numpy())
             #     shared_resources["action_stds_history"][i].append(action_std[i].cpu().numpy())
@@ -91,10 +93,7 @@ class PPOAgent:
         np.random.seed(seed)
         torch.manual_seed(seed)
         # 環境のインスタンスを作成
-        env = gym.make(self.env_name)
-
-        # プロセスごとにアクターのコピーを作成
-        # local_actor = self.create_actor_copy()
+        env = gazebo_env.GazeboEnvironment(id=id)
 
         # データ収集のステップ数を初期化
         collect_step_count = 0
@@ -113,7 +112,7 @@ class PPOAgent:
         logger_actions = []
 
         while True:
-            state = env.reset(seed=random.randint(0,100000))[0]
+            state = env.reset(seed=random.randint(0,100000))
             done = False
             # 1エピソードを格納するリスト
             episode_data = []
@@ -125,10 +124,10 @@ class PPOAgent:
                 total_steps += 1
                 action, log_prob_old, logger_entropy, logger_action_mean, logger_action_std, logger_action = self.get_action(id, state, share_memory_actor)
 
-                next_state, reward, terminated, truncated, info = env.step(action)
+                next_state, reward, terminated, baseline_reward = env.step([0.2 * action[0],action[1]])
 
-                total_reward += reward            
-                if terminated or truncated:
+                total_reward += baseline_reward
+                if terminated:
                     done = 1
 
                 episode_data.append((state, action, log_prob_old, reward, next_state, done))
@@ -149,6 +148,7 @@ class PPOAgent:
             
             if collect_step_count >= self.collect_step:
                 break
+        print(f"Process {id} finished collecting data")
         
         return (trajectory, logger_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions)
 
