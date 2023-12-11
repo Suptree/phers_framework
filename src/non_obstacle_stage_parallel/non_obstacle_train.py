@@ -40,7 +40,7 @@ def main():
     total_iterations = 50000
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 100  # 100イテレーションごとにモデルを保存
-    num_env = 3
+    num_env = 4
     seed_value = 1023
         
     set_seeds(seed_value)
@@ -73,7 +73,7 @@ def main():
             tasks = [(i, seed_value+i+iteration, share_memory_actor) for i in range(num_env)]
             results = pool.starmap(agent.data_collection, tasks)
             
-            
+        
         print("コレクト終了")
         for result in results: 
             episode_data, rewards, entoripies, action_means, action_stds, action_samples = result

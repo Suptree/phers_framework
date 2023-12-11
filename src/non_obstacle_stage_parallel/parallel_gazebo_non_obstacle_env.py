@@ -32,8 +32,8 @@ class GazeboEnvironment:
         self.robot_angle = None
         self.pheromone_value = None
 
-        # 障害物の位置. 環境の並列化により20mごとに障害物が存在
-        self.obstacle = [[id  * 20.0 + 0.4, 0.0], [id * 20.0 + -0.4, 0.0], [id * 20.0 + 0.0, 0.4], [id * 20.0 + 0.0, -0.4]]
+        # 障害物の位置. 環境の並列化により5mごとに障害物が存在
+        # self.obstacle = [[id  * 5.0 + 0.4, 0.0], [id * 5.0 + -0.4, 0.0], [id * 5.0 + 0.0, 0.4], [id * 5.0 + 0.0, -0.4]]
 
         # ゴールの位置
         self.goal_pos_x = 0
@@ -72,7 +72,7 @@ class GazeboEnvironment:
         # self.reset_pheromone_pub = rospy.Publisher('/pheromone_reset_signal', EmptyMsg, queue_size=1)
 
         # マーカーを表示するためのパブリッシャの設定        
-        self.marker_pub = rospy.Publisher('visualization_marker', Marker, queue_size=10)
+        self.marker_pub = rospy.Publisher(f'/{self.robot_name}/visualization_marker', Marker, queue_size=10)
         
         self.pub_led = rospy.Publisher(f'/{self.robot_name}/led', ColorRGBA, queue_size=1)
 
@@ -170,7 +170,7 @@ class GazeboEnvironment:
         Rw = -1.0  # angular velocity penalty constant
         Ra = 30.0  # goal reward constant
         Rc = -30.0 # collision penalty constant
-        Rt = -1.0  # time penalty
+        # Rt = -1.0  # time penalty
         w_m = 0.8  # maximum allowable angular velocity
         wd_p = 4.0 # weight for positive distance
         wd_n = 6.0 # weight for negative distance
@@ -188,12 +188,13 @@ class GazeboEnvironment:
         r_c = Rc if self.is_collided else 0  # collision penalty
         r_d = wd_p * goal_to_distance_diff if goal_to_distance_diff > 0 else wd_n * goal_to_distance_diff
         r_w = Rw if abs(next_state_robot_angular_velocity_z) > w_m else 0  # angular velocity penalty
-        r_t = Rt
+        # r_t = Rt
 
         # print("r_g : {}, r_c : {}, r_d : {}, r_w : {}, r_t : {}".format(r_g, r_c, r_d, r_w, r_t))
         # print("goal_to_distance_diff: ", goal_to_distance_diff)
 
-        reward = r_g + r_c + r_d + r_w + r_t
+        # reward = r_g + r_c + r_d + r_w + r_t
+        reward = r_g + r_c + r_d + r_w
 
         base_r_d = 4.0 * base_goal_to_distance_diff if base_goal_to_distance_diff > 0 else wd_n * base_goal_to_distance_diff
     
@@ -298,7 +299,7 @@ class GazeboEnvironment:
         # # ゴールの初期位置をランダムに設定
         goal_r = 0.8
         goal_radius = 2.0 * math.pi * random.random()
-        self.goal_pos_x = self.id * 20.0 +  goal_r * math.cos(goal_radius) # 作業一時中断。環境の作成
+        self.goal_pos_x = self.id * 5.0 +  goal_r * math.cos(goal_radius) # 作業一時中断。環境の作成
         self.goal_pos_y = goal_r * math.sin(goal_radius)
 
         # ロボットの位置をリセット
@@ -342,7 +343,7 @@ class GazeboEnvironment:
 
         state_msg = ModelState()
         state_msg.model_name = self.robot_name
-        state_msg.pose.position.x = self.id * 20.0 + 0.0
+        state_msg.pose.position.x = self.id * 5.0 + 0.0
         state_msg.pose.position.y = 0.0
         state_msg.pose.position.z = 0.2395
         state_msg.pose.orientation.x = 0.0

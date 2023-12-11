@@ -148,7 +148,7 @@ class PPOAgent:
             
             if collect_step_count >= self.collect_step:
                 break
-        print(f"Process {id} finished collecting data")
+        print(f"Finished : Process {id} finished collecting data")
         
         return (trajectory, logger_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions)
 
