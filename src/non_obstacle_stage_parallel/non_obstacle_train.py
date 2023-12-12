@@ -19,10 +19,11 @@ import parallel_gazebo_non_obstacle_env as gazebo_env
 import pandas as pd
 import torch.multiprocessing as mp
 from torch.multiprocessing import Manager
-
+import logging
 import signal
 import sys
 
+mp.log_to_stderr(logging.DEBUG)
 
 # GPUが使える場合はGPUを使う
 
@@ -74,7 +75,7 @@ def main():
             results = pool.starmap(agent.data_collection, tasks)
             
         
-        print("コレクト終了")
+        print("Parallel data collection finished")
         for result in results: 
             episode_data, rewards, entoripies, action_means, action_stds, action_samples = result
 
@@ -97,10 +98,6 @@ def main():
                     agent.logger.action_stds_history[i].append(action_std)
                 for action_sample in action_T_samples[i]:
                     agent.logger.action_samples_history[i].append(action_sample)
-        del share_memory_actor
-        del results
-        del tasks
-        del pool
 
         # アドバンテージの計算
         agent.compute_advantages_and_add_to_buffer()

@@ -13,6 +13,7 @@ from torch.multiprocessing import Manager
 from torch.optim.lr_scheduler import LambdaLR
 import os
 import json
+import time
 
 
 class PPOAgent:
@@ -110,48 +111,54 @@ class PPOAgent:
         logger_action_means = []
         logger_action_stds = []
         logger_actions = []
+        try:
+            while True:
+                state = env.reset(seed=random.randint(0,100000))
+                done = False
+                # 1エピソードを格納するリスト
+                episode_data = []
+                total_reward = 0
+                total_steps = 0
 
-        while True:
-            state = env.reset(seed=random.randint(0,100000))
-            done = False
-            # 1エピソードを格納するリスト
-            episode_data = []
-            total_reward = 0
-            total_steps = 0
+                while not done:
+                    collect_step_count += 1
+                    total_steps += 1
+                    action, log_prob_old, logger_entropy, logger_action_mean, logger_action_std, logger_action = self.get_action(id, state, share_memory_actor)
 
-            while not done:
-                collect_step_count += 1
-                total_steps += 1
-                action, log_prob_old, logger_entropy, logger_action_mean, logger_action_std, logger_action = self.get_action(id, state, share_memory_actor)
+                    next_state, reward, terminated, baseline_reward = env.step([0.2 * action[0],action[1]])
 
-                next_state, reward, terminated, baseline_reward = env.step([0.2 * action[0],action[1]])
+                    total_reward += baseline_reward
+                    if terminated:
+                        done = 1
 
-                total_reward += baseline_reward
-                if terminated:
-                    done = 1
-
-                episode_data.append((state, action, log_prob_old, reward, next_state, done))
-                state = next_state
+                    episode_data.append((state, action, log_prob_old, reward, next_state, done))
+                    state = next_state
 
 
-                logger_entropies.append(logger_entropy)
+                    logger_entropies.append(logger_entropy)
+                    
+                    logger_action_means.append(logger_action_mean)
+                    # print("logger_action_mean", logger_action_mean)
+                    # print("logger_action_means", logger_action_means)
+                    logger_action_stds.append(logger_action_std)
+                    logger_actions.append(logger_action)
+
+                print(f"Process {id} Reward : {total_reward}, Step : {total_steps}")
+                trajectory.append(episode_data)
+                logger_reward.append(total_reward)
                 
-                logger_action_means.append(logger_action_mean)
-                # print("logger_action_mean", logger_action_mean)
-                # print("logger_action_means", logger_action_means)
-                logger_action_stds.append(logger_action_std)
-                logger_actions.append(logger_action)
-
-            print(f"Process {id} Reward : {total_reward}, Step : {total_steps}")
-            trajectory.append(episode_data)
-            logger_reward.append(total_reward)
-            
-            if collect_step_count >= self.collect_step:
-                break
-        print(f"Finished : Process {id} finished collecting data")
+                if collect_step_count >= self.collect_step:
+                    break
+            print(f"Finishing : Process {id} finished collecting data")
+            env.shutdown()
+            print(f"Process {id} is Finished")
+            return (trajectory, logger_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions)
+        except Exception as e:
+            print(f"Process {id} is Finished with error")
+            print(e)
+            env.shutdown()
+            return (trajectory, logger_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions)
         
-        return (trajectory, logger_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions)
-
     def compute_advantages_and_add_to_buffer(self):
         for trajectory in self.trajectory_buffer.buffer:
             local_critic = self.create_critics_copy()

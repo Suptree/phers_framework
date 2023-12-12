@@ -14,7 +14,7 @@ from gazebo_msgs.msg import ModelState
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Vector3
 from visualization_msgs.msg import Marker
-
+import logging
 import time
 
 class GazeboEnvironment:
@@ -30,10 +30,6 @@ class GazeboEnvironment:
         self.robot_linear_velocity = None
         self.robot_angular_velocity = None
         self.robot_angle = None
-        self.pheromone_value = None
-
-        # 障害物の位置. 環境の並列化により5mごとに障害物が存在
-        # self.obstacle = [[id  * 5.0 + 0.4, 0.0], [id * 5.0 + -0.4, 0.0], [id * 5.0 + 0.0, 0.4], [id * 5.0 + 0.0, -0.4]]
 
         # ゴールの位置
         self.goal_pos_x = 0
@@ -43,16 +39,15 @@ class GazeboEnvironment:
         # Robotの状態
         self.robot_color = "CYEAN"
 
-
         # Flags
-        self.is_collided = False # 衝突したかどうか
         self.is_goal = False   # ゴールしたかどうか
         self.is_timeout = False # タイムアウトしたかどうか
     
 
         # ROSのノードの初期化
-        rospy.init_node(f'{self.robot_name}_gazebo_environment', anonymous=True)
-
+        rospy.init_node(f'{self.robot_name}_gazebo_environment', anonymous=True, disable_signals=True)
+        rospy.loginfo("Setting logger level to DEBUG")
+        logging.getLogger('rosout').setLevel(logging.DEBUG)
 
         # ロボットをコントロールするためのパブリッシャの設定
         self.cmd_vel_pub = rospy.Publisher(f'/{self.robot_name}/cmd_vel', Twist, queue_size=1)
@@ -104,6 +99,7 @@ class GazeboEnvironment:
     # 環境のステップを実行する
     def step(self, action): # action = [v, w]
         while self.last_time == rospy.Time.now():
+            # print("waiting for update")
             time.sleep(0.01)
 
         # ロボットに速度を設定
@@ -305,10 +301,10 @@ class GazeboEnvironment:
         # ロボットの位置をリセット
         before = self.robot_position
         self.set_robot()
-        # ロボットの位置がリセットされるまで待機
+        # # ロボットの位置がリセットされるまで待機
         while before == self.robot_position:
-            print("waiting for reset robot position")
-            time.sleep(1)
+            # print("waiting for reset robot position")
+            time.sleep(0.1)
         
         # フラグのリセット
         self.is_collided = False
@@ -357,9 +353,9 @@ class GazeboEnvironment:
         state_msg.twist.angular.y = 0.0
         state_msg.twist.angular.z = 0.0
 
-        # Gazeboのモデルの状態を設定するためのサービスの設定
-        rospy.wait_for_service('/gazebo/set_model_state')
-        set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+        # # Gazeboのモデルの状態を設定するためのサービスの設定
+        # rospy.wait_for_service('/gazebo/set_model_state')
+        # set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
 
         try:
             self.set_model_state(state_msg)
@@ -400,3 +396,9 @@ class GazeboEnvironment:
         marker.color.b = 0.0
         marker.color.a = 1.0
         self.marker_pub.publish(marker)
+    def shutdown(self):
+        """
+        Shuts down the ROS node.
+        """
+        rospy.signal_shutdown("Closing Gazebo environment")
+        rospy.spin()
