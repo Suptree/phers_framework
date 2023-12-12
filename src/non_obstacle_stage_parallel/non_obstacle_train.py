@@ -1,29 +1,16 @@
 #!/usr/bin/env python
 
-import time
-from collections import deque
 import random
 import numpy as np
 from agent import PPOAgent
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.optim.lr_scheduler import ExponentialLR
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from datetime import datetime
-import argparse
-import parallel_gazebo_non_obstacle_env as gazebo_env
-import pandas as pd
 import torch.multiprocessing as mp
 from torch.multiprocessing import Manager
-import logging
 import signal
 import sys
 
-mp.log_to_stderr(logging.DEBUG)
 
 # GPUが使える場合はGPUを使う
 
@@ -41,7 +28,7 @@ def main():
     total_iterations = 50000
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 100  # 100イテレーションごとにモデルを保存
-    num_env = 4
+    num_env = 11
     seed_value = 1023
         
     set_seeds(seed_value)
@@ -56,9 +43,9 @@ def main():
                     gamma=0.99, 
                     gae_lambda=0.95, 
                     clip_epsilon=0.2, 
-                    buffer_size=50000, 
+                    buffer_size=100000, 
                     batch_size=1024,
-                    collect_step=512,
+                    collect_step=256,
                     entropy_coefficient=0.01, 
                     device=device)
 
@@ -71,7 +58,7 @@ def main():
         share_memory_actor.share_memory()
         
         with mp.Pool(processes=num_env) as pool:
-            tasks = [(i, seed_value+i+iteration, share_memory_actor) for i in range(num_env)]
+            tasks = [(i, seed_value+i+iteration+random.randrange(10000), share_memory_actor) for i in range(num_env)]
             results = pool.starmap(agent.data_collection, tasks)
             
         
@@ -103,7 +90,7 @@ def main():
         agent.compute_advantages_and_add_to_buffer()
             
         # パラメータの更新
-        epochs = 3
+        epochs = 5
         for epoch in range(epochs):
             # ミニバッチを取得
             state, action, log_prob_old, reward, next_state, done, advantage = agent.replay_memory_buffer.get_minibatch()

@@ -62,7 +62,6 @@ class PPOAgent:
 
         # ガウス分布を作成
         action_distribution = torch.distributions.Normal(action_mean, action_std)
-        # shared_resources["entropy_history"].append(action_distribution.entropy().mean().item())
         logger_entropy = action_distribution.entropy().mean().item()
        
         # ガウス分布から行動をサンプリング
@@ -71,24 +70,29 @@ class PPOAgent:
         # ガウス分布でサンプリングときの確率密度の対数を計算
         log_prob_old = action_distribution.log_prob(action)
 
-        # 線形速度の値を0~1の範囲に変換 : -1~1ではないのは、NNの出力層がReLUなので正の値を出力するため
-        action[0] = torch.tanh(action[0])
-        # 行動の確率密度の対数の計算
-        log_prob_old[0] -= torch.log(1 - action[0].pow(2) + 1e-6)
+        # 行動の値を-1~1の範囲にする
+        if action[0] < -1 or action[0] > 1:
+            action[0] = torch.tanh(action[0])
+            # 行動の確率密度の対数の計算
+            log_prob_old[0] -= torch.log(1 - action[0].pow(2) + 1e-6)
+        if action[1] < -1 or action[1] > 1:
+            action[1] = torch.tanh(action[1])
+            # 行動の確率密度の対数の計算
+            log_prob_old[1] -= torch.log(1 - action[1].pow(2) + 1e-6)
 
         # LOGGER - 新しいリスト構造を使用
-        # if id == 0:
         logger_action_mean = action_mean.cpu().numpy()
         logger_action_std = action_std.cpu().numpy()
         logger_action = action.cpu().numpy()
-            # for i in range(self.n_actions):
-            #     shared_resources["action_means_history"][i].append(action_mean[i].cpu().numpy())
-            #     shared_resources["action_stds_history"][i].append(action_std[i].cpu().numpy())
-            #     shared_resources["action_samples_history"][i].append(action[i].cpu().numpy())
+
+        action[0] = action[0] * 0.2
+        logger_action[0] = logger_action[0] * 0.2
+        logger_action_mean[0] = logger_action_mean[0] * 0.2
 
         return action.cpu().numpy(), log_prob_old.cpu().numpy(), logger_entropy, logger_action_mean, logger_action_std, logger_action
     
     def data_collection(self, id ,seed, share_memory_actor):
+        print(f"Process {id} : Started collecting data")
         # 子プロセスで再度シード値を設定
         random.seed(seed)
         np.random.seed(seed)
@@ -125,7 +129,7 @@ class PPOAgent:
                     total_steps += 1
                     action, log_prob_old, logger_entropy, logger_action_mean, logger_action_std, logger_action = self.get_action(id, state, share_memory_actor)
 
-                    next_state, reward, terminated, baseline_reward = env.step([0.2 * action[0],action[1]])
+                    next_state, reward, terminated, baseline_reward = env.step([action[0],action[1]])
 
                     total_reward += baseline_reward
                     if terminated:

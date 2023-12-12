@@ -2,9 +2,6 @@ import random
 import numpy as np
 import tf
 import math
-from std_msgs.msg import Float32MultiArray
-from std_srvs.srv import Empty
-from std_msgs.msg import Empty as EmptyMsg
 from std_msgs.msg import ColorRGBA
 
 import rospy
@@ -14,7 +11,6 @@ from gazebo_msgs.msg import ModelState
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Vector3
 from visualization_msgs.msg import Marker
-import logging
 import time
 
 class GazeboEnvironment:
@@ -42,12 +38,10 @@ class GazeboEnvironment:
         # Flags
         self.is_goal = False   # ゴールしたかどうか
         self.is_timeout = False # タイムアウトしたかどうか
-    
+
 
         # ROSのノードの初期化
         rospy.init_node(f'{self.robot_name}_gazebo_environment', anonymous=True, disable_signals=True)
-        rospy.loginfo("Setting logger level to DEBUG")
-        logging.getLogger('rosout').setLevel(logging.DEBUG)
 
         # ロボットをコントロールするためのパブリッシャの設定
         self.cmd_vel_pub = rospy.Publisher(f'/{self.robot_name}/cmd_vel', Twist, queue_size=1)
@@ -60,12 +54,6 @@ class GazeboEnvironment:
         self.gazebo_model_state_sub = rospy.Subscriber(
             '/gazebo/model_states', ModelStates, self.gazebo_model_state_callback)
         
-        # pheromoneの値を取得するためのサブスクライバの設定
-        # self.sub_phero = rospy.Subscriber(
-        #     '/pheromone_value', Float32MultiArray, self.pheromone_callback)
-        # pheromoneの値をリセットするためのパブリッシャの設定
-        # self.reset_pheromone_pub = rospy.Publisher('/pheromone_reset_signal', EmptyMsg, queue_size=1)
-
         # マーカーを表示するためのパブリッシャの設定        
         self.marker_pub = rospy.Publisher(f'/{self.robot_name}/visualization_marker', Marker, queue_size=10)
         
@@ -116,36 +104,9 @@ class GazeboEnvironment:
 
         # アクション後の環境の状態を取得, 衝突判定やゴール判定も行う
         next_state_distance_to_goal, next_state_angle_to_goal, next_state_robot_linear_velocity_x, next_state_robot_angular_velocity_z = self.get_next_state()
-        # print("###########################################")
-        # print("next_state_distance_to_goal: ", next_state_distance_to_goal)
-        # print("next_state_angle_to_goal: ", math.degrees(next_state_angle_to_goal))
-
-        # ゴールとの角度を度数法にしてプリント
-
-        # フェロモンを読み込んだ場合は緑色にする
-        # if sum(next_state_pheromone_value) > 0:
-        #     if self.robot_color != "GREEN":
-        #         self.robot_color = "GREEN"
-        #         color = ColorRGBA()
-        #         color.r = 0
-        #         color.g = 255
-        #         color.b = 0
-        #         color.a = 255
-        #         self.pub_led.publish(color)
-        # else: # pheromone == 0
-        #     if self.robot_color != "CYEAN":
-        #         self.robot_color = "CYEAN"
-        #         color = ColorRGBA()
-        #         color.r = 0
-        #         color.g = 160
-        #         color.b = 233
-        #         color.a = 255
-        #         self.pub_led.publish(color)
-
         
         # 報酬の計算
         reward, baseline_reward = self.calculate_rewards(next_state_distance_to_goal,next_state_robot_angular_velocity_z)
-        # print("reward: ", reward)
         # タスクの終了判定
         self.done = self.is_collided or self.is_goal or self.is_timeout
         # print("self.done: ", self.done)
@@ -156,7 +117,6 @@ class GazeboEnvironment:
 
         # 観測情報をstateに格納
         self.state = [next_state_distance_to_goal, next_state_angle_to_goal, next_state_robot_linear_velocity_x, next_state_robot_angular_velocity_z]
-        # print("self.state: ", self.state)
         self.last_time = rospy.Time.now()
 
         return self.state, reward, self.done, baseline_reward
@@ -172,29 +132,14 @@ class GazeboEnvironment:
         wd_n = 6.0 # weight for negative distance
 
         # アクション後のロボットとゴールまでの距離の差分
-        # print("///////////////////////////////////////////")
-        # print("self.prev_distance_to_goal: ", self.prev_distance_to_goal)
-        # print("next_state_distance_to_goal: ", next_state_distance_to_goal)
-        # print("self.prev_distance_to_goal - next_state_distance_to_goal: ", self.prev_distance_to_goal - next_state_distance_to_goal)
         goal_to_distance_diff = 100.0 * (self.prev_distance_to_goal - next_state_distance_to_goal)
-        # print("100 * (self.prev_distance_to_goal - next_state_distance_to_goal): ", goal_to_distance_diff)
-        base_goal_to_distance_diff = self.prev_distance_to_goal - next_state_distance_to_goal
 
         r_g = Ra if self.is_goal else 0 # goal reward
         r_c = Rc if self.is_collided else 0  # collision penalty
         r_d = wd_p * goal_to_distance_diff if goal_to_distance_diff > 0 else wd_n * goal_to_distance_diff
         r_w = Rw if abs(next_state_robot_angular_velocity_z) > w_m else 0  # angular velocity penalty
-        # r_t = Rt
 
-        # print("r_g : {}, r_c : {}, r_d : {}, r_w : {}, r_t : {}".format(r_g, r_c, r_d, r_w, r_t))
-        # print("goal_to_distance_diff: ", goal_to_distance_diff)
-
-        # reward = r_g + r_c + r_d + r_w + r_t
         reward = r_g + r_c + r_d + r_w
-
-        base_r_d = 4.0 * base_goal_to_distance_diff if base_goal_to_distance_diff > 0 else wd_n * base_goal_to_distance_diff
-    
-        # baseline_reward = r_g + r_c + base_r_d + r_w
 
         return reward, reward
 
@@ -215,13 +160,8 @@ class GazeboEnvironment:
         elif next_state_angle_to_goal > math.pi:
             next_state_angle_to_goal -= 2 * math.pi
 
-        # 障害物との衝突判定
-        # self.is_collided = self.check_collision_to_obstacle()
-        
         # ゴール判定
         self.is_goal = self.check_goal()
-        # if next_state_distance_to_goal <= 0.02:
-        #     self.is_goal = True
 
         # タイムアウト判定
         self.is_timeout = rospy.get_time() - self.reset_timer > 40.0
@@ -235,57 +175,9 @@ class GazeboEnvironment:
         
         if distance_to_goal <= 0.0535:
             return True
-        
-        # dx = self.goal_pos_x - self.robot_position.x
-        # dy = self.goal_pos_y - self.robot_position.y
-        # angle_to_goal = math.atan2(dy, dx)  # ロボットから見たゴールの角度
-        # angle_robot = self.robot_angle  # ロボットの向き
-        # relative_angle = abs(angle_to_goal - angle_robot)
-        # if relative_angle <= math.radians(5):
-        #     if distance_to_goal <= 0.0714:
-        #         # print("ゴール\n")
-        #         return True
-        # else:
-        #     if distance_to_goal <= 0.059:
-        #         # print("ゴール\n")
-        #         return True
 
         return False
     
-    def check_collision_to_obstacle(self):
-        for obs in self.obstacle:
-            distance_to_obstacle = math.sqrt((self.robot_position.x - obs[0])**2 + (self.robot_position.y - obs[1])**2)
-            
-            if distance_to_obstacle <= 0.0535:
-                return True
-            
-            # dx = obs[0] - self.robot_position.x
-            # dy = obs[1] - self.robot_position.y
-            # angle_to_obstacle = math.atan2(dy, dx)  # ロボットから見た障害物の角度
-            # angle_robot = self.robot_angle  # ロボットの向き
-            # relative_angle = abs(angle_to_obstacle - angle_robot)
-            
-            # if relative_angle <= math.radians(5):  # 障害物が正面にある場合
-            #     if distance_to_obstacle <= 0.0714:
-            #         # 障害物の座標と正面という情報と角度をプリント
-            #         # print("正面\n")
-            #         # print("obs: ", obs)
-            #         # print("relative_angle: ", math.degrees(relative_angle))
-            #         # print("angle_robot: ", math.degrees(angle_robot))
-            #         # print("angle_to_obstacle: ", math.degrees(angle_to_obstacle))
-            #         # print("distance_to_obstacle: ", distance_to_obstacle)
-            #         return True
-            # else:  # 障害物が横や後ろにある場合
-            #     if distance_to_obstacle <= 0.059:
-            #         # 障害物の座標と正面という情報と角度をプリント
-            #         # print("正面以外\n")
-            #         # print("obs: ", obs)
-            #         # print("relative_angle: ", math.degrees(relative_angle))
-            #         # print("angle_robot: ", math.degrees(angle_robot))
-            #         # print("angle_to_obstacle: ", math.degrees(angle_to_obstacle))
-            #         # print("distance_to_obstacle: ", distance_to_obstacle)
-            #         return True
-        return False
 
     # 環境のリセット
     def reset(self, seed=None):
@@ -295,8 +187,12 @@ class GazeboEnvironment:
         # # ゴールの初期位置をランダムに設定
         goal_r = 0.8
         goal_radius = 2.0 * math.pi * random.random()
-        self.goal_pos_x = self.id * 5.0 +  goal_r * math.cos(goal_radius) # 作業一時中断。環境の作成
-        self.goal_pos_y = goal_r * math.sin(goal_radius)
+        if self.id <= 5:
+            self.goal_pos_x = self.id * 5.0 +  goal_r * math.cos(goal_radius) # 作業一時中断。環境の作成
+            self.goal_pos_y = goal_r * math.sin(goal_radius)
+        else:
+            self.goal_pos_x = goal_r * math.cos(goal_radius)
+            self.goal_pos_y = (self.id - 5) * 5.0 +  goal_r * math.sin(goal_radius)
 
         # ロボットの位置をリセット
         before = self.robot_position
@@ -325,8 +221,6 @@ class GazeboEnvironment:
             angle_to_goal += 2 * math.pi
         elif angle_to_goal > math.pi:
             angle_to_goal -= 2 * math.pi
-        # フェロモンマップをリセット
-        # self.reset_pheromone_pub.publish(EmptyMsg())
         # ゴールのマーカーを表示
         if self.id == 0:
             self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
@@ -339,8 +233,12 @@ class GazeboEnvironment:
 
         state_msg = ModelState()
         state_msg.model_name = self.robot_name
-        state_msg.pose.position.x = self.id * 5.0 + 0.0
-        state_msg.pose.position.y = 0.0
+        if self.id <= 5:
+            state_msg.pose.position.x = self.id * 5.0 + 0.0
+            state_msg.pose.position.y = 0.0
+        else:
+            state_msg.pose.position.x = 0.0
+            state_msg.pose.position.y = (self.id - 5) * 5.0 + 0.0
         state_msg.pose.position.z = 0.2395
         state_msg.pose.orientation.x = 0.0
         state_msg.pose.orientation.y = 0.0
@@ -353,18 +251,10 @@ class GazeboEnvironment:
         state_msg.twist.angular.y = 0.0
         state_msg.twist.angular.z = 0.0
 
-        # # Gazeboのモデルの状態を設定するためのサービスの設定
-        # rospy.wait_for_service('/gazebo/set_model_state')
-        # set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
-
         try:
             self.set_model_state(state_msg)
         except rospy.ServiceException as e:
             print("Spawn URDF service call failed: {0}".format(e))
-        # try:
-        #     set_model_state(state_msg)
-        # except rospy.ServiceException as e:
-        #     print("Spawn URDF service call failed: {0}".format(e))
 
 
     def set_goal_marker(self, x, y):
