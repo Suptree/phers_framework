@@ -103,8 +103,9 @@ class GazeboEnvironment:
         
         current_time = rospy.Time.now()
         self.cmd_vel_pub.publish(twist)
-        while rospy.Time.now() < current_time + rospy.Duration(0.1):
-            pass
+        # while rospy.Time.now() < current_time + rospy.Duration(0.1):
+        #     pass
+        rospy.sleep(0.1)
 
         # アクション後の環境の状態を取得, 衝突判定やゴール判定も行う
         next_state_distance_to_goal, next_state_angle_to_goal, next_state_robot_linear_velocity_x, next_state_robot_angular_velocity_z = self.get_next_state()
@@ -204,7 +205,7 @@ class GazeboEnvironment:
         # # ロボットの位置がリセットされるまで待機
         while before == self.robot_position:
             # print("waiting for reset robot position")
-            pass
+            rospy.sleep(1.0)
         
         # フラグのリセット
         self.is_collided = False
