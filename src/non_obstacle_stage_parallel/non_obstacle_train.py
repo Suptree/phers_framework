@@ -28,7 +28,7 @@ def main():
     total_iterations = 50000
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 100  # 100イテレーションごとにモデルを保存
-    num_env = 11
+    num_env = 16
     seed_value = 1023
         
     set_seeds(seed_value)
@@ -90,7 +90,7 @@ def main():
         agent.compute_advantages_and_add_to_buffer()
             
         # パラメータの更新
-        epochs = 5
+        epochs =3
         for epoch in range(epochs):
             # ミニバッチを取得
             state, action, log_prob_old, reward, next_state, done, advantage = agent.replay_memory_buffer.get_minibatch()

@@ -192,12 +192,9 @@ class GazeboEnvironment:
         # # ゴールの初期位置をランダムに設定
         goal_r = 0.8
         goal_radius = 2.0 * math.pi * random.random()
-        if self.id <= 5:
-            self.goal_pos_x = self.id * 5.0 +  goal_r * math.cos(goal_radius) # 作業一時中断。環境の作成
-            self.goal_pos_y = goal_r * math.sin(goal_radius)
-        else:
-            self.goal_pos_x = goal_r * math.cos(goal_radius)
-            self.goal_pos_y = (self.id - 5) * 5.0 +  goal_r * math.sin(goal_radius)
+
+        self.goal_pos_x = int(int(self.id) / 4) * 20.0 + goal_r * math.cos(goal_radius)
+        self.goal_pos_y = (int(self.id) % 4) * 20.0 + goal_r * math.sin(goal_radius)
 
         # ロボットの位置をリセット
         before = self.robot_position
@@ -237,12 +234,10 @@ class GazeboEnvironment:
 
         state_msg = ModelState()
         state_msg.model_name = self.robot_name
-        if self.id <= 5:
-            state_msg.pose.position.x = self.id * 5.0 + 0.0
-            state_msg.pose.position.y = 0.0
-        else:
-            state_msg.pose.position.x = 0.0
-            state_msg.pose.position.y = (self.id - 5) * 5.0 + 0.0
+        
+        state_msg.pose.position.x = int(int(self.id) / 4) * 20.0
+        state_msg.pose.position.y = (int(self.id) % 4) * 20.0
+
         state_msg.pose.position.z = 0.2395
         state_msg.pose.orientation.x = 0.0
         state_msg.pose.orientation.y = 0.0
