@@ -89,6 +89,7 @@ class GazeboEnvironment:
         while self.last_time == rospy.Time.now():
             # print("waiting for update")
             time.sleep(0.01)
+        
 
         # ロボットに速度を設定
         v, w = action
@@ -99,8 +100,11 @@ class GazeboEnvironment:
         twist = Twist()
         twist.linear = Vector3(x=v, y=0, z=0)
         twist.angular = Vector3(x=0, y=0, z=w)
+        
+        current_time = rospy.Time.now()
         self.cmd_vel_pub.publish(twist)
-        time.sleep(0.1)
+        while rospy.Time.now() < current_time + rospy.Duration(0.1):
+            pass
 
         # アクション後の環境の状態を取得, 衝突判定やゴール判定も行う
         next_state_distance_to_goal, next_state_angle_to_goal, next_state_robot_linear_velocity_x, next_state_robot_angular_velocity_z = self.get_next_state()
@@ -200,7 +204,7 @@ class GazeboEnvironment:
         # # ロボットの位置がリセットされるまで待機
         while before == self.robot_position:
             # print("waiting for reset robot position")
-            time.sleep(0.1)
+            pass
         
         # フラグのリセット
         self.is_collided = False
@@ -222,8 +226,7 @@ class GazeboEnvironment:
         elif angle_to_goal > math.pi:
             angle_to_goal -= 2 * math.pi
         # ゴールのマーカーを表示
-        if self.id == 0:
-            self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
+        self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
 
         self.done = False
         self.state = [self.distance_to_goal, angle_to_goal,self.robot_linear_velocity.x, self.robot_angular_velocity.z]

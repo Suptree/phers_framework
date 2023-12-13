@@ -20,7 +20,7 @@ class Actor(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
 
-        linear_mean = F.relu(self.fc3(x))
+        linear_mean = F.sigmoid(self.fc3(x))
         angular_mean = F.tanh(self.fc3(x))
 
         mean = torch.cat((linear_mean, angular_mean), dim=-1)

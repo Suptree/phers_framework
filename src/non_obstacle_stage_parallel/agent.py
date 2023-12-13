@@ -71,23 +71,23 @@ class PPOAgent:
         log_prob_old = action_distribution.log_prob(action)
 
         # 行動の値を-1~1の範囲にする
-        if action[0] < -1 or action[0] > 1:
-            action[0] = torch.tanh(action[0])
-            # 行動の確率密度の対数の計算
-            log_prob_old[0] -= torch.log(1 - action[0].pow(2) + 1e-6)
-        if action[1] < -1 or action[1] > 1:
-            action[1] = torch.tanh(action[1])
-            # 行動の確率密度の対数の計算
-            log_prob_old[1] -= torch.log(1 - action[1].pow(2) + 1e-6)
+        # if action[0] < -1 or action[0] > 1:
+        #     action[0] = torch.tanh(action[0])
+        #     # 行動の確率密度の対数の計算
+        #     log_prob_old[0] -= torch.log(1 - action[0].pow(2) + 1e-6)
+        # if action[1] < -1 or action[1] > 1:
+        #     action[1] = torch.tanh(action[1])
+        #     # 行動の確率密度の対数の計算
+        #     log_prob_old[1] -= torch.log(1 - action[1].pow(2) + 1e-6)
 
         # LOGGER - 新しいリスト構造を使用
         logger_action_mean = action_mean.cpu().numpy()
         logger_action_std = action_std.cpu().numpy()
         logger_action = action.cpu().numpy()
 
-        action[0] = action[0] * 0.2
-        logger_action[0] = logger_action[0] * 0.2
-        logger_action_mean[0] = logger_action_mean[0] * 0.2
+        # action[0] = action[0] * 0.2
+        # logger_action[0] = logger_action[0] * 0.2
+        # logger_action_mean[0] = logger_action_mean[0] * 0.2
 
         return action.cpu().numpy(), log_prob_old.cpu().numpy(), logger_entropy, logger_action_mean, logger_action_std, logger_action
     
@@ -129,7 +129,7 @@ class PPOAgent:
                     total_steps += 1
                     action, log_prob_old, logger_entropy, logger_action_mean, logger_action_std, logger_action = self.get_action(id, state, share_memory_actor)
 
-                    next_state, reward, terminated, baseline_reward = env.step([action[0],action[1]])
+                    next_state, reward, terminated, baseline_reward = env.step([action[0]*0.2,action[1]])
 
                     total_reward += baseline_reward
                     if terminated:
