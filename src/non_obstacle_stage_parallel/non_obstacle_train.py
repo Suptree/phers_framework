@@ -60,7 +60,8 @@ def main():
         with mp.Pool(processes=num_env) as pool:
             tasks = [(i, seed_value+i+iteration, share_memory_actor) for i in range(num_env)]
             results = pool.starmap(agent.data_collection, tasks)
-            
+            pool.close()
+            pool.terminate()
         
         print("Parallel data collection finished")
         for result in results: 

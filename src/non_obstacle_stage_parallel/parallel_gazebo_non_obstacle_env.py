@@ -88,7 +88,7 @@ class GazeboEnvironment:
     def step(self, action): # action = [v, w]
         while self.last_time == rospy.Time.now():
             # print("waiting for update")
-            time.sleep(0.01)
+            rospy.sleep(0.01)
         
 
         # ロボットに速度を設定
@@ -196,6 +196,12 @@ class GazeboEnvironment:
         self.goal_pos_x = float(int(int(self.id) / 4) * 20.0) + goal_r * math.cos(goal_radius)
         self.goal_pos_y = float((int(self.id) % 4) * 20.0) + goal_r * math.sin(goal_radius)
 
+        # ロボット停止命令
+        twist = Twist()
+        twist.linear = Vector3(x=0, y=0, z=0)
+        twist.angular = Vector3(x=0, y=0, z=0)
+        self.cmd_vel_pub.publish(twist)
+
         # ロボットの位置をリセット
         before = self.robot_position
         self.set_robot()
@@ -249,6 +255,7 @@ class GazeboEnvironment:
         state_msg.twist.angular.x = 0.0
         state_msg.twist.angular.y = 0.0
         state_msg.twist.angular.z = 0.0
+        
 
         try:
             self.set_model_state(state_msg)
@@ -289,5 +296,11 @@ class GazeboEnvironment:
         """
         Shuts down the ROS node.
         """
+        twist = Twist()
+        twist.linear = Vector3(x=0, y=0, z=0)
+        twist.angular = Vector3(x=0, y=0, z=0)
+        self.cmd_vel_pub.publish(twist)
+
+
         rospy.signal_shutdown("Closing Gazebo environment")
         rospy.spin()

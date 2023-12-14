@@ -147,18 +147,18 @@ class PPOAgent:
                     logger_action_stds.append(logger_action_std)
                     logger_actions.append(logger_action)
 
-                print(f"Process {id} Reward : {total_reward}, Step : {total_steps}")
+                print(f"HERO_{id} Reward : {total_reward}, Step : {total_steps}")
                 trajectory.append(episode_data)
                 logger_reward.append(total_reward)
                 
                 if collect_step_count >= self.collect_step:
                     break
-            print(f"Finishing : Process {id} finished collecting data")
+            # print(f"Finishing : Process {id} finished collecting data")
             env.shutdown()
             print(f"Process {id} is Finished")
             return (trajectory, logger_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions)
         except Exception as e:
-            print(f"Process {id} is Finished with error")
+            print(f"ERROR : Process {id} is Finished")
             print(e)
             env.shutdown()
             return (trajectory, logger_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions)
