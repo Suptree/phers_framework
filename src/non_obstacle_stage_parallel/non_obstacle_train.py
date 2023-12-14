@@ -58,7 +58,7 @@ def main():
         share_memory_actor.share_memory()
         
         with mp.Pool(processes=num_env) as pool:
-            tasks = [(i, seed_value+i+iteration+random.randrange(10000), share_memory_actor) for i in range(num_env)]
+            tasks = [(i, seed_value+i+iteration, share_memory_actor) for i in range(num_env)]
             results = pool.starmap(agent.data_collection, tasks)
             
         

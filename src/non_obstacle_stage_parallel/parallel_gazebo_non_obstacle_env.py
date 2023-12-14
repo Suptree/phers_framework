@@ -193,16 +193,16 @@ class GazeboEnvironment:
         goal_r = 0.8
         goal_radius = 2.0 * math.pi * random.random()
 
-        self.goal_pos_x = int(int(self.id) / 4) * 20.0 + goal_r * math.cos(goal_radius)
-        self.goal_pos_y = (int(self.id) % 4) * 20.0 + goal_r * math.sin(goal_radius)
+        self.goal_pos_x = float(int(int(self.id) / 4) * 20.0) + goal_r * math.cos(goal_radius)
+        self.goal_pos_y = float((int(self.id) % 4) * 20.0) + goal_r * math.sin(goal_radius)
 
         # ロボットの位置をリセット
         before = self.robot_position
         self.set_robot()
         # # ロボットの位置がリセットされるまで待機
-        while before == self.robot_position:
+        # while before == self.robot_position:
             # print("waiting for reset robot position")
-            rospy.sleep(1.0)
+        rospy.sleep(3.0)
         
         # フラグのリセット
         self.is_collided = False
