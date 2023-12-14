@@ -138,10 +138,13 @@ class GazeboEnvironment:
 
         # アクション後のロボットとゴールまでの距離の差分
         goal_to_distance_diff = 100.0 * (self.prev_distance_to_goal - next_state_distance_to_goal)
-
+        
         r_g = Ra if self.is_goal else 0 # goal reward
         r_c = Rc if self.is_collided else 0  # collision penalty
-        r_d = wd_p * goal_to_distance_diff if goal_to_distance_diff > 0 else wd_n * goal_to_distance_diff
+        if goal_to_distance_diff > 0:
+            r_d = wd_p * goal_to_distance_diff
+        else:
+            r_d = wd_n * goal_to_distance_diff
         r_w = Rw if abs(next_state_robot_angular_velocity_z) > w_m else 0  # angular velocity penalty
 
         reward = r_g + r_c + r_d + r_w
@@ -209,6 +212,8 @@ class GazeboEnvironment:
         # while before == self.robot_position:
             # print("waiting for reset robot position")
         rospy.sleep(3.0)
+        # ゴールのマーカーを表示
+        self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
         
         # フラグのリセット
         self.is_collided = False
@@ -229,8 +234,9 @@ class GazeboEnvironment:
             angle_to_goal += 2 * math.pi
         elif angle_to_goal > math.pi:
             angle_to_goal -= 2 * math.pi
-        # ゴールのマーカーを表示
-        self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
+
+        # previous distance to goal の初期値をidごとの原点からゴールまでの距離に設定
+        self.prev_distance_to_goal = self.distance_to_goal
 
         self.done = False
         self.state = [self.distance_to_goal, angle_to_goal,self.robot_linear_velocity.x, self.robot_angular_velocity.z]
