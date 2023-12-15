@@ -1,6 +1,6 @@
 <?xml version='1.0'?>
 <sdf version='1.7'>
-  <model name='phers_ex01_obstacle'>
+  <model name='phers_goal'>
     <link name='link'>
       <inertial>
         <mass>0.00015641</mass>
@@ -23,7 +23,7 @@
         <geometry>
           <cylinder>
             <radius>0.02</radius>
-            <length>0.1</length>
+            <length>0.05</length>
           </cylinder>
         </geometry>
         <material>
@@ -34,8 +34,8 @@
           <shader type='pixel'>
             <normal_map>__default__</normal_map>
           </shader>
-          <ambient>0.3 0.3 0.3 1</ambient>
-          <diffuse>0.7 0.7 0.7 1</diffuse>
+          <ambient>1 0 0 1</ambient>
+          <diffuse>1 0 0 1</diffuse>
           <specular>0.01 0.01 0.01 1</specular>
           <emissive>0 0 0 1</emissive>
         </material>
@@ -49,8 +49,8 @@
         <pose>0 0 0 0 -0 0</pose>
         <geometry>
           <cylinder>
-            <radius>0.02</radius>
-            <length>0.260473</length>
+            <radius>0.01</radius>
+            <length>0.05</length>
           </cylinder>
         </geometry>
         <surface>
@@ -100,7 +100,7 @@
         </surface>
       </collision>
     </link>
-    <static>1</static>
+    <static>0</static>
     <allow_auto_disable>1</allow_auto_disable>
   </model>
 </sdf>

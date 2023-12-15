@@ -11,12 +11,20 @@ from pathlib import Path
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 import tf
+import sys
 
-class Node:
-    def __init__(self):
+class PheromoneFramework:
+    def __init__(self, id):
+        self.id = id
+        self.robot_name = f"hero_{id}" # hero_0
+
+        # 原点座標
+        self.origin_x = float((int(self.id) % 4) * 20.0) 
+        self.origin_y = float(int(int(self.id) / 4) * 20.0)
+
         # pheromonクラスのインスタンス生成
         self.pheromone = Pheromone(
-            grid_map_size=16, resolution=50, evaporation=0.0, diffusion=0.0
+            grid_map_size=40, resolution=50, evaporation=0.0, diffusion=0.0, origin_x=self.origin_x, origin_y=self.origin_y
         )
 
         # フェロモンの最大値と最小値を設定
@@ -24,19 +32,25 @@ class Node:
         self.min_pheromone_value = 0.0
 
         # 経過時間
-        self.start_time = time.process_time()
+        self.start_time = rospy.get_time()
 
         # オブジェクトの周りにフェロモンを配置
         # Refactor repetitive code
-        obstacles = [(0.0, 0.4), (0.0, -0.4), (0.4, 0.0), (-0.4, 0.0)]
-        for obs in obstacles:
+        self.obstacles = [
+            (self.origin_x + 0.0,    self.origin_y + 0.4),
+            (self.origin_x + 0.0,    self.origin_y + (-0.4)),
+            (self.origin_x + 0.4,    self.origin_y + 0.0),
+            (self.origin_x + (-0.4), self.origin_y + 0.0)
+        ]
+        
+        for obs in self.obstacles:
             x_index, y_index = self.posToIndex(obs[0], obs[1])
             self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.06)
 
         # Publisher & Subscriber
         # フェロモン値を送信
         self.publish_pheromone = rospy.Publisher(
-            "/hero_0/pheromone_value", Float32MultiArray, queue_size=10
+            f"/{self.robot_name}/pheromone_value", Float32MultiArray, queue_size=10
         )
         # gazeboの環境上にあるオブジェクトの状態を取得
         # 取得すると, pheromoneCallback関数が呼び出される
@@ -45,14 +59,14 @@ class Node:
         )
         # リセット信号のSubscriber
         self.subscribe_reset = rospy.Subscriber(
-            "/pheromone_reset_signal", Empty, self.resetPheromoneMap
+            f"/{self.robot_name}/pheromone_reset_signal", Empty, self.resetPheromoneMap
         )
 
         self.marker_pub = rospy.Publisher(
-            "visualization_marker_array", MarkerArray, queue_size=10
+            f"/{self.robot_name}/visualization_marker_array", MarkerArray, queue_size=10
         )
-        rospy.sleep(1)
-        self.publish_markers()
+        # rospy.sleep(1)
+        # self.publish_markers()
     
     def publish_markers(self):
         markerArray = MarkerArray()
@@ -95,9 +109,11 @@ class Node:
 
     # 座標からフェロモングリッドへ変換
     def posToIndex(self, x, y):
-        x_index = math.floor((x + 2.0) * self.pheromone.resolution)
-        y_index = math.floor((y + 2.0) * self.pheromone.resolution)
-
+        x_index = math.floor((x - self.origin_x + 2.0) * self.pheromone.resolution)
+        y_index = math.floor((y - self.origin_y + 2.0) * self.pheromone.resolution)
+        # print("x: {}, y: {}".format(x, y))
+        # print("x - origin_x: {}, y - origin_y: {}".format(x - self.origin_x, y - self.origin_y))
+        # print("x_index: {}, y_index: {}".format(x_index, y_index))
         if (
             x_index < 0
             or y_index < 0
@@ -110,13 +126,13 @@ class Node:
     
     # セルの左下を返す
     def indexToPos(self, x_index, y_index): 
-        x = (x_index / self.pheromone.resolution) - 2.0
-        y = (y_index / self.pheromone.resolution) - 2.0
+        x = (x_index / self.pheromone.resolution) + self.origin_x - 2.0
+        y = (y_index / self.pheromone.resolution) + self.origin_y - 2.0
         return x, y
     
     def pheromoneCallback(self, model_status):
         # Reading from arguments
-        robot_index = model_status.name.index("hero_0")
+        robot_index = model_status.name.index(self.robot_name)
         # print(model_status.pose)
         # print(model_status.twist)
         pose = model_status.pose[robot_index]
@@ -127,34 +143,38 @@ class Node:
         angles = tf.transformations.euler_from_quaternion(
             (ori.x, ori.y, ori.z, ori.w))
         self.theta = angles[2]
-        x_index, y_index = self.posToIndex(pos.x, pos.y)
         pheromone_value = Float32MultiArray()
 
-        for j in reversed(range(3)):
-            for i in range(3):
-                # print("[x_index + i - 1, y_index + j - 1] : [{}, {}] = {}".format(x_index + i - 1, y_index + j - 1,self.pheromone.getPheromone(x_index + i - 1, y_index + j - 1)))
-                pheromone_value.data.append(
-                    self.pheromone.getPheromone(x_index + i - 1, y_index + j - 1)
-                )
+        if abs(pos.x - self.origin_x) < 1 and abs(pos.y - self.origin_y) < 1:
+            x_index, y_index = self.posToIndex(pos.x, pos.y)
+            for j in reversed(range(3)):
+                for i in range(3):
+                    # print("[x_index + i - 1, y_index + j - 1] : [{}, {}] = {}".format(x_index + i - 1, y_index + j - 1,self.pheromone.getPheromone(x_index + i - 1, y_index + j - 1)))
+                    pheromone_value.data.append(
+                        self.pheromone.getPheromone(x_index + i - 1, y_index + j - 1)
+                    )
+        else:
+            pheromone_value.data = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         # print("=======================")
         self.publish_pheromone.publish(pheromone_value)
 
     def resetPheromoneMap(self, msg):
         self.pheromone.reset()
         # 経過時間
-        self.start_time = time.process_time()
+        self.start_time = rospy.get_time()
 
         # オブジェクトの周りにフェロモンを配置
         # Refactor repetitive code
-        obstacles = [(0.0, 0.4), (0.0, -0.4), (0.4, 0.0), (-0.4, 0.0)]
-        for obs in obstacles:
+        for obs in self.obstacles:
             x_index, y_index = self.posToIndex(obs[0], obs[1])
             self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.06)
 
         self.publish_markers()
 
+
+        
 class Pheromone:
-    def __init__(self, grid_map_size=0, resolution=0, evaporation=0.0, diffusion=0.0):
+    def __init__(self, grid_map_size=0, resolution=0, evaporation=0.0, diffusion=0.0, origin_x=0.0, origin_y=0.0):
         # グリッド地図の生成
         # map size = 1 m * size
         self.grid_map_size = grid_map_size
@@ -183,11 +203,11 @@ class Pheromone:
             self.isDiffusion = True
 
         # Timers
-        self.update_timer = time.process_time()
-        self.step_timer = time.process_time()
-        self.injection_timer = time.process_time()
-        self.save_timer = time.process_time()
-        self.reset_timer = time.process_time()
+        self.update_timer = rospy.get_time()
+        self.step_timer = rospy.get_time()
+        self.injection_timer = rospy.get_time()
+        self.save_timer = rospy.get_time()
+        self.reset_timer = rospy.get_time()
 
     # 指定した座標(x, y)からフェロモンを取得
     def getPheromone(self, x, y):
@@ -205,7 +225,7 @@ class Pheromone:
         if injection_size % 2 == 0:
             raise Exception("Pheromone injection size must be an odd number.")
         # 現在時刻を取得
-        current_time = time.process_time()
+        current_time = rospy.get_time()
         # フェロモンを射出する間隔を0.1s間隔に設定
         if current_time - self.injection_timer > 0.1:
             for i in range(injection_size):
@@ -237,7 +257,7 @@ class Pheromone:
                 if math.sqrt(i**2 + j**2) <= radius:
                     self.grid[x + i, y + j] = value
     def update(self, min_pheromone_value, max_pheromone_value):
-        current_time = time.process_time()
+        current_time = rospy.get_time()
         time_elapsed = current_time - self.update_timer
         self.update_timer = current_time
 
@@ -294,7 +314,22 @@ class Pheromone:
         self.grid = np.zeros((self.num_cell, self.num_cell))
         self.grid_copy = np.zeros((self.num_cell, self.num_cell))
 
+
 if __name__ == "__main__":
+    # コマンドライン引数を確認
+    if len(sys.argv) < 2:
+        print("Please provide the number of parallel environments")
+        sys.exit(1)
     rospy.init_node("Pheromone_Framework")
-    node1 = Node()
+
+    # 引数を取得
+    num_env = int(sys.argv[1])
+    
+    # 指定された数のPheromoneFrameworkインスタンスを作成
+    nodes = []
+    
+    node = []
+    for i in range(num_env):
+        node = PheromoneFramework(id=i)
+        nodes.append(node)
     rospy.spin()
