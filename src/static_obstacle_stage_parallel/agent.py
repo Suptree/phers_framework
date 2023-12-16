@@ -164,7 +164,7 @@ class PPOAgent:
             print(f"ERROR : Process {id} is Finished")
             print(e)
             env.shutdown()
-            return (trajectory, logger_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions)
+            return (None, None, None, None, None, None)
         
     def compute_advantages_and_add_to_buffer(self):
         for trajectory in self.trajectory_buffer.buffer:
@@ -243,9 +243,46 @@ class PPOAgent:
                     # "state_rms_count": state_rms.count,
                     },filepath)
         
+
+    
+    def load_weights(self, model_path):
+        checkpoint = torch.load(model_path)
+        self.actor.load_state_dict(checkpoint["current_policy_state_dict"])
+        self.critic.load_state_dict(checkpoint["critic_state_dict"])
+        self.actor_optimizer.load_state_dict(checkpoint["actor_optimizer_state_dict"])
+        self.critic_optimizer.load_state_dict(checkpoint["critic_optimizer_state_dict"])
+        self.actor_scheduler.load_state_dict(checkpoint["actor_scheduler_state_dict"])
+        self.critic_scheduler.load_state_dict(checkpoint["critic_scheduler_state_dict"])
+        # iteration = checkpoint["iteration"]
+        # state_rms_mean = checkpoint["state_rms_mean"]
+        # state_rms_var = checkpoint["state_rms_var"]
+        # return iteration
+
+    def set_to_eval_mode(self):
+        self.actor.eval()
+        self.critic.eval()
+
+    def set_to_train_mode(self):
+        self.actor.train()
+        self.critic.train()
+
+    def create_actor_copy(self):
+        # 新しい Actor インスタンスを作成し、現在のモデルの状態をコピー
+        # actor_copy = Actor(n_states=self.n_states, n_actions=self.n_actions)
+        actor_copy = Actor(n_states=self.n_states, n_actions=self.n_actions).to("cpu")
+        actor_copy.load_state_dict(self.actor.state_dict())
+        return actor_copy
+    
+    def create_critics_copy(self):
+        # 新しい Critic インスタンスを作成し、現在のモデルの状態をコピー
+        critic_copy = Critic(n_states=self.n_states)
+        critic_copy.load_state_dict(self.critic.state_dict())
+        return critic_copy
+    
+
     def save_setting_config(self):
-        # ハイパーパラメータの辞書を作成
-        
+    # ハイパーパラメータの辞書を作成
+    
         hyperparameters = {
             'env_name': self.env_name,
             'n_iteration': self.n_iteration,
@@ -283,7 +320,8 @@ class PPOAgent:
                     'positive': 4.0,
                     'negative': 6.0
                 },
-                'angular_velocity_penalty': -1.0
+                'angular_velocity_penalty': -1.0,
+                'time_penalty': -1.0
             },
             'timeout': 40.0  # エピソードのタイムアウト時間
         }
@@ -326,38 +364,3 @@ class PPOAgent:
             json.dump(all_params, json_file, indent=4)
 
         print(f"Experiment settings saved to {filepath}")
-
-    
-    def load_weights(self):
-        checkpoint = torch.load(self.env_name + "_weights.pth")
-        self.actor.load_state_dict(checkpoint["current_policy_state_dict"])
-        self.critic.load_state_dict(checkpoint["critic_state_dict"])
-        self.actor_optimizer.load_state_dict(checkpoint["actor_optimizer_state_dict"])
-        self.critic_optimizer.load_state_dict(checkpoint["critic_optimizer_state_dict"])
-        self.actor_scheduler.load_state_dict(checkpoint["actor_scheduler_state_dict"])
-        self.critic_scheduler.load_state_dict(checkpoint["critic_scheduler_state_dict"])
-        iteration = checkpoint["iteration"]
-        state_rms_mean = checkpoint["state_rms_mean"]
-        state_rms_var = checkpoint["state_rms_var"]
-        return iteration, state_rms_mean, state_rms_var
-
-    def set_to_eval_mode(self):
-        self.actor.eval()
-        self.critic.eval()
-
-    def set_to_train_mode(self):
-        self.actor.train()
-        self.critic.train()
-
-    def create_actor_copy(self):
-        # 新しい Actor インスタンスを作成し、現在のモデルの状態をコピー
-        # actor_copy = Actor(n_states=self.n_states, n_actions=self.n_actions)
-        actor_copy = Actor(n_states=self.n_states, n_actions=self.n_actions).to("cpu")
-        actor_copy.load_state_dict(self.actor.state_dict())
-        return actor_copy
-    
-    def create_critics_copy(self):
-        # 新しい Critic インスタンスを作成し、現在のモデルの状態をコピー
-        critic_copy = Critic(n_states=self.n_states)
-        critic_copy.load_state_dict(self.critic.state_dict())
-        return critic_copy

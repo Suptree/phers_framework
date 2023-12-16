@@ -66,6 +66,8 @@ def main():
         
         print("Parallel data collection finished")
         for result in results: 
+            if result[0] is None:
+                continue
             episode_data, rewards, entoripies, action_means, action_stds, action_samples = result
 
             action_T_means = np.array(action_means).T.tolist()

@@ -69,7 +69,7 @@ class PheromoneFramework:
     
     def publish_markers(self):
         markerArray = MarkerArray()
-        id = 0
+        id = 1
         for i in range(self.pheromone.num_cell):
             for j in range(self.pheromone.num_cell):
                 
