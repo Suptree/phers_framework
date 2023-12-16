@@ -320,16 +320,11 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Please provide the number of parallel environments")
         sys.exit(1)
-    rospy.init_node("Pheromone_Framework")
 
     # 引数を取得
     num_env = int(sys.argv[1])
-    
-    # 指定された数のPheromoneFrameworkインスタンスを作成
-    nodes = []
-    
-    node = []
-    for i in range(num_env):
-        node = PheromoneFramework(id=i)
-        nodes.append(node)
+
+    rospy.init_node(f"hero_{num_env}_Pheromone_Framework", anonymous=True,)
+
+    node = PheromoneFramework(id=num_env)
     rospy.spin()
