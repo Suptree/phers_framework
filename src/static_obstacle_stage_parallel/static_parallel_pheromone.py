@@ -24,7 +24,7 @@ class PheromoneFramework:
 
         # pheromonクラスのインスタンス生成
         self.pheromone = Pheromone(
-            grid_map_size=40, resolution=50, evaporation=0.0, diffusion=0.0, origin_x=self.origin_x, origin_y=self.origin_y
+            grid_map_size=40, resolution=25, evaporation=0.0, diffusion=0.0
         )
 
         # フェロモンの最大値と最小値を設定
@@ -65,8 +65,7 @@ class PheromoneFramework:
         self.marker_pub = rospy.Publisher(
             f"/{self.robot_name}/visualization_marker_array", MarkerArray, queue_size=10
         )
-        # rospy.sleep(1)
-        # self.publish_markers()
+
     
     def publish_markers(self):
         markerArray = MarkerArray()
@@ -88,8 +87,8 @@ class PheromoneFramework:
                     marker.pose.orientation.z = 0.0
                     marker.pose.orientation.w = 1.0
 
-                    marker.scale.x = 0.02
-                    marker.scale.y = 0.02
+                    marker.scale.x = 1.0 / self.pheromone.resolution
+                    marker.scale.y = 1.0 / self.pheromone.resolution
                     marker.scale.z = 0.01
 
                     marker.color.r = 0.0
@@ -109,8 +108,8 @@ class PheromoneFramework:
 
     # 座標からフェロモングリッドへ変換
     def posToIndex(self, x, y):
-        x_index = math.floor((x - self.origin_x + 2.0) * self.pheromone.resolution)
-        y_index = math.floor((y - self.origin_y + 2.0) * self.pheromone.resolution)
+        x_index = math.floor((x - self.origin_x + self.pheromone.grid_map_size/2.0) * self.pheromone.resolution)
+        y_index = math.floor((y - self.origin_y + self.pheromone.grid_map_size/2.0) * self.pheromone.resolution)
         # print("x: {}, y: {}".format(x, y))
         # print("x - origin_x: {}, y - origin_y: {}".format(x - self.origin_x, y - self.origin_y))
         # print("x_index: {}, y_index: {}".format(x_index, y_index))
@@ -126,8 +125,8 @@ class PheromoneFramework:
     
     # セルの左下を返す
     def indexToPos(self, x_index, y_index): 
-        x = (x_index / self.pheromone.resolution) + self.origin_x - 2.0
-        y = (y_index / self.pheromone.resolution) + self.origin_y - 2.0
+        x = (x_index / self.pheromone.resolution) + self.origin_x -  (self.pheromone.grid_map_size / 2.0)
+        y = (y_index / self.pheromone.resolution) + self.origin_y - (self.pheromone.grid_map_size / 2.0)
         return x, y
     
     def pheromoneCallback(self, model_status):
@@ -145,18 +144,16 @@ class PheromoneFramework:
         self.theta = angles[2]
         pheromone_value = Float32MultiArray()
 
-        if abs(pos.x - self.origin_x) < 1 and abs(pos.y - self.origin_y) < 1:
-            x_index, y_index = self.posToIndex(pos.x, pos.y)
-            for j in reversed(range(3)):
-                for i in range(3):
-                    # print("[x_index + i - 1, y_index + j - 1] : [{}, {}] = {}".format(x_index + i - 1, y_index + j - 1,self.pheromone.getPheromone(x_index + i - 1, y_index + j - 1)))
-                    pheromone_value.data.append(
-                        self.pheromone.getPheromone(x_index + i - 1, y_index + j - 1)
-                    )
-        else:
-            pheromone_value.data = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        # print("=======================")
-        self.publish_pheromone.publish(pheromone_value)
+
+        x_index, y_index = self.posToIndex(pos.x, pos.y)
+        for j in reversed(range(3)):
+            for i in range(3):
+                pheromone_value.data.append(
+                    self.pheromone.getPheromone(x_index + i - 1, y_index + j - 1)
+                )
+
+        if not rospy.is_shutdown():
+            self.publish_pheromone.publish(pheromone_value)
 
     def resetPheromoneMap(self, msg):
         self.pheromone.reset()
@@ -174,7 +171,7 @@ class PheromoneFramework:
 
         
 class Pheromone:
-    def __init__(self, grid_map_size=0, resolution=0, evaporation=0.0, diffusion=0.0, origin_x=0.0, origin_y=0.0):
+    def __init__(self, grid_map_size=0, resolution=0, evaporation=0.0, diffusion=0.0):
         # グリッド地図の生成
         # map size = 1 m * size
         self.grid_map_size = grid_map_size

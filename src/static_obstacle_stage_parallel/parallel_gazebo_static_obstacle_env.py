@@ -4,6 +4,7 @@ import tf
 import math
 from std_msgs.msg import ColorRGBA
 from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Empty as EmptyMsg
 
 import rospy
 from gazebo_msgs.srv import SetModelState
@@ -73,6 +74,8 @@ class GazeboEnvironment:
         # pheromoneの値を取得するためのサブスクライバの設定
         self.sub_phero = rospy.Subscriber(
             f'/{self.robot_name}/pheromone_value', Float32MultiArray, self.pheromone_callback)
+        # pheromoneの値をリセットするためのパブリッシャの設定
+        self.reset_pheromone_pub = rospy.Publisher(f'/{self.robot_name}/pheromone_reset_signal', EmptyMsg, queue_size=1)
         
         # マーカーを表示するためのパブリッシャの設定        
         self.marker_pub = rospy.Publisher(f'/{self.robot_name}/visualization_marker', Marker, queue_size=10)
@@ -156,9 +159,9 @@ class GazeboEnvironment:
         self.done = self.is_collided or self.is_goal or self.is_timeout
         # print("self.done: ", self.done)
         if self.is_goal:
-            print(f"[HERO_{self.id} ] : /////// GOAL ///////")
+            print(f"\033[1;36m[HERO_{self.id}]\033[0m : \033[32m///////   GOAL    ///////\033[0m")
         elif self.is_collided:
-            print(f"[HERO_{self.id} ] : /////// COLLISION ///////")
+            print(f"\033[1;36m[HERO_{self.id}]\033[0m : \033[38;5;214m/////// COLLISION ///////\033[0m")
         # 状態の更新
         self.prev_distance_to_goal = next_state_distance_to_goal
 
@@ -226,7 +229,7 @@ class GazeboEnvironment:
         distance_to_goal =  math.sqrt((self.robot_position.x - self.goal_pos_x)**2
                              + (self.robot_position.y - self.goal_pos_y)**2)
         
-        if distance_to_goal <= 0.065:
+        if distance_to_goal <= 0.07:
             return True
 
         return False
@@ -267,6 +270,9 @@ class GazeboEnvironment:
 
         # 新しいゴールマーカーを設定
         self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
+
+        # フェロモンマップをリセット
+        self.reset_pheromone_pub.publish(EmptyMsg())
 
         # ロボットの位置をリセット
         before = self.robot_position

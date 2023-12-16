@@ -17,7 +17,7 @@ import time
 
 
 class PPOAgent:
-    def __init__(self, env_name, n_iteration, n_states, action_bounds, n_actions, actor_lr, critic_lr, gamma, gae_lambda, clip_epsilon, buffer_size, batch_size,collect_step, entropy_coefficient,device):
+    def __init__(self, env_name, n_iteration, n_states, action_bounds, n_actions, actor_lr, critic_lr, gamma, gae_lambda, clip_epsilon, buffer_size, batch_size, epoch, collect_step, entropy_coefficient,device):
         self.env_name = env_name
         self.start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         self.dir_name = f"./ppo_{self.env_name}/{self.start_time}"
@@ -32,6 +32,7 @@ class PPOAgent:
         self.gae_lambda = gae_lambda # GAEのλ
         self.clip_epsilon = clip_epsilon # クリッピングするときのε
         self.buffer_size = buffer_size # バッファサイズ
+        self.epoch = epoch # エポック数
         self.batch_size = batch_size # バッチサイズ
         self.collect_step = collect_step # 1回学習を行うあたりに必要なステップ数
         self.n_states = n_states # 状態の次元数
@@ -242,30 +243,89 @@ class PPOAgent:
                     # "state_rms_count": state_rms.count,
                     },filepath)
         
-    def save_hyperparameters(self):
+    def save_setting_config(self):
         # ハイパーパラメータの辞書を作成
         
         hyperparameters = {
+            'env_name': self.env_name,
             'n_iteration': self.n_iteration,
-            'actor_lr': float(self.actor_lr),
-            'critic_lr': float(self.critic_lr),
-            'gamma': float(self.gamma),
-            'gae_lambda': float(self.gae_lambda),
-            'clip_epsilon': float(self.clip_epsilon),
+            'n_states': self.n_states,
+            'action_bounds': self.action_bounds,
+            'n_actions': self.n_actions,
+            'actor_lr': self.actor_lr,
+            'critic_lr': self.critic_lr,
+            'gamma': self.gamma,
+            'gae_lambda': self.gae_lambda,
+            'clip_epsilon': self.clip_epsilon,
             'buffer_size': self.buffer_size,
             'batch_size': self.batch_size,
-            'n_states': self.n_states,
-            'action_bounds': [float(x) for x in self.action_bounds],
-            'n_actions': self.n_actions,
-            'entropy_coefficient': float(self.entropy_coefficient),
-            'device': str(self.device)
+            'epoch': self.epoch,
+            'collect_step': self.collect_step,
+            'entropy_coefficient': self.entropy_coefficient,
+            'device': str(self.device),
+            'actor_network_architecture': self.actor.get_architecture(),
+            'critic_network_architecture': self.critic.get_architecture(),
+            # ここに他の必要なパラメータを追加
+        }
+
+        # 環境に特有のパラメータ（環境名やバージョンなど）
+        # 学習プロセスの設定
+        env_params = {
+            'robot_action_parameters': {
+                'max_linear_velocity': 0.2,  # 仮の値
+                'max_angular_velocity': 1.0  # 仮の値
+            },
+            'goal_position': 'random',  # ゴール位置はランダムに設定
+            'reward_calculation': {
+                'collision_penalty': -30.0,
+                'goal_reward': 30.0,
+                'distance_reward_weight': {
+                    'positive': 4.0,
+                    'negative': 6.0
+                },
+                'angular_velocity_penalty': -1.0
+            },
+            'timeout': 40.0  # エピソードのタイムアウト時間
+        }
+
+        # 乱数生成のシード値
+        seed_params = {
+            'experiment_seed': 1023,  # あるいは他の適切な変数
+
+        }
+
+        # 使用したデバイスの情報
+        device_params = {
+            'device': str(self.device),
+            # GPUモデルやメモリサイズなど、必要に応じて追加
+        }
+
+        # 最適化アルゴリズムの情報
+        optimization_params = {
+            'optimizer': 'Adam',
+            'actor_optimizer_params': self.actor_optimizer.state_dict(),
+            'critic_optimizer_params': self.critic_optimizer.state_dict()
+        }
+        # 実験の日時
+        experiment_time_params = {
+            'start_time': self.start_time,
+        }
+
+        # すべての情報を1つの辞書に統合
+        all_params = {
+            'hyperparameters': hyperparameters,
+            'environment_params': env_params,
+            'seed_params': seed_params,
+            'device_params': device_params,
+            'optimization_params': optimization_params,
+            'experiment_time_params': experiment_time_params
         }
         # JSON ファイルに保存
-        filepath = os.path.join(self.dir_name, 'hyperparameters.json')
+        filepath = os.path.join(self.dir_name, 'setting.json')
         with open(filepath, 'w') as json_file:
-            json.dump(hyperparameters, json_file, indent=4)
+            json.dump(all_params, json_file, indent=4)
 
-        print(f"Hyperparameters saved to {filepath}")
+        print(f"Experiment settings saved to {filepath}")
 
     
     def load_weights(self):

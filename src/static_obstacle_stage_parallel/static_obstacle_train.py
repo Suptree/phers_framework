@@ -27,8 +27,8 @@ def main():
 
     total_iterations = 5000
     plot_interval = 10  # 10イテレーションごとにグラフを保存
-    save_model_interval = 100  # 100イテレーションごとにモデルを保存
-    num_env = 16
+    save_model_interval = 50  # 100イテレーションごとにモデルを保存
+    num_env = 8
     seed_value = 1023
         
     set_seeds(seed_value)
@@ -45,13 +45,13 @@ def main():
                     clip_epsilon=0.2, 
                     buffer_size=100000, 
                     batch_size=1024,
-                    # batch_size=128,
-                    collect_step=256,
+                    epoch=3,
+                    collect_step=512,
                     entropy_coefficient=0.01, 
                     device=device)
 
 
-    agent.save_hyperparameters()
+    agent.save_setting_config()
     signal.signal(signal.SIGINT, exit)
     for iteration in range(total_iterations):
         print("+++++++++++++++++++  iteration: {}++++++++++++++".format(iteration))
@@ -92,8 +92,7 @@ def main():
         agent.compute_advantages_and_add_to_buffer()
             
         # パラメータの更新
-        epochs =3
-        for epoch in range(epochs):
+        for epoch in range(agent.epoch):
             # ミニバッチを取得
             state, action, log_prob_old, reward, next_state, done, advantage = agent.replay_memory_buffer.get_minibatch()
 
