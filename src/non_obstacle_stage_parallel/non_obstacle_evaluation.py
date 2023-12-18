@@ -79,8 +79,8 @@ def main():
             total_steps += 1
             state = torch.tensor(state, dtype=torch.float32)
             with torch.no_grad():
-                action = agent.actor(state)
-            action = action.cpu().numpy()
+                action_mean, _ = agent.actor(state)
+            action = action_mean.cpu().numpy()
 
             next_state, reward, terminated, _ , info = env.step([action[0]*0.2,action[1]])
 
