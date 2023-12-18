@@ -11,9 +11,10 @@ from torch.multiprocessing import Manager
 import signal
 import sys
 import parallel_gazebo_non_obstacle_env as gazebo_env
-
+import csv  # CSVモジュールをインポート
 # GPUが使える場合はGPUを使う
-
+import datetime  # datetimeモジュールをインポート
+import os
 
 def set_seeds(seed_value):
     random.seed(seed_value)
@@ -38,7 +39,8 @@ def main():
     save_model_interval = 100  # 100イテレーションごとにモデルを保存
     num_env = 16
     seed_value = 1023
-        
+    # 実験結果を格納するリスト
+    results = []
     set_seeds(seed_value)
 
     # 引数からモデルのパスを取得
@@ -95,7 +97,20 @@ def main():
         string_done_category = "reach goal" if done_category == 0 else "collision" if done_category == 1 else "time up"
 
         print("total steps: {}, task time: {:.3f}, total reward: {:.3f}, done category: {}".format(total_steps, task_time, total_reward, string_done_category))                
-
+        # 結果をリストに追加
+        results.append([run, total_steps, task_time, total_reward, done_category])
+    # CSVファイルに結果を書き出す
+    start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    dir_name = f"./Evaluate-Non-Obstacle/{start_time}"
+    # ディレクトリを作成
+    os.makedirs(dir_name, exist_ok=True)
+    filename = f'non_obstacle_results.csv'
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        # ヘッダーを書き込む
+        writer.writerow(['Run', 'Total Steps', 'Task Time', 'Total Reward', 'Done Category'])
+        # データを書き込む
+        writer.writerows(results)
 
 def exit(signal, frame):
     print("\nCtrl+C detected. Saving training data and exiting...")    
