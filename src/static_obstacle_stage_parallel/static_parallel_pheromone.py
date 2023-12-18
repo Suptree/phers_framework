@@ -130,27 +130,34 @@ class PheromoneFramework:
         return x, y
     
     def pheromoneCallback(self, model_status):
-        # Reading from arguments
-        robot_index = model_status.name.index(self.robot_name)
-        # print(model_status.pose)
-        # print(model_status.twist)
-        pose = model_status.pose[robot_index]
-        # twist = model_status.twist[robot_index]
-        pos = pose.position
-        ori = pose.orientation
+        try:
+            # Reading from arguments
+            robot_index = model_status.name.index(self.robot_name)
+            # print(model_status.pose)
+            # print(model_status.twist)
+            pose = model_status.pose[robot_index]
+            # twist = model_status.twist[robot_index]
+            pos = pose.position
+            ori = pose.orientation
 
-        angles = tf.transformations.euler_from_quaternion(
-            (ori.x, ori.y, ori.z, ori.w))
-        self.theta = angles[2]
-        pheromone_value = Float32MultiArray()
+            angles = tf.transformations.euler_from_quaternion(
+                (ori.x, ori.y, ori.z, ori.w))
+            self.theta = angles[2]
+            pheromone_value = Float32MultiArray()
 
 
-        x_index, y_index = self.posToIndex(pos.x, pos.y)
-        for j in reversed(range(3)):
-            for i in range(3):
-                pheromone_value.data.append(
-                    self.pheromone.getPheromone(x_index + i - 1, y_index + j - 1)
-                )
+            x_index, y_index = self.posToIndex(pos.x, pos.y)
+            for j in reversed(range(3)):
+                for i in range(3):
+                    pheromone_value.data.append(
+                        self.pheromone.getPheromone(x_index + i - 1, y_index + j - 1)
+                    )
+        except Exception as e:
+            print("Error occured in pheromoneCallback")
+            print(e)
+            pheromone_value = Float32MultiArray()
+            for _ in range(9):
+                pheromone_value.data.append(0.0)
 
         if not rospy.is_shutdown():
             self.publish_pheromone.publish(pheromone_value)

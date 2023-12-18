@@ -129,7 +129,7 @@ class PPOAgent:
                     total_steps += 1
                     action, log_prob_old, logger_entropy, logger_action_mean, logger_action_std, logger_action = self.get_action(id, state, share_memory_actor)
 
-                    next_state, reward, terminated, baseline_reward = env.step([action[0]*0.2,action[1]])
+                    next_state, reward, terminated, baseline_reward, _ = env.step([action[0]*0.2,action[1]])
 
                     total_reward += baseline_reward
                     if terminated:
@@ -266,8 +266,8 @@ class PPOAgent:
         print(f"Hyperparameters saved to {filepath}")
 
     
-    def load_weights(self):
-        checkpoint = torch.load(self.env_name + "_weights.pth")
+    def load_weights(self, model_path):
+        checkpoint = torch.load(model_path)
         self.actor.load_state_dict(checkpoint["current_policy_state_dict"])
         self.critic.load_state_dict(checkpoint["critic_state_dict"])
         self.actor_optimizer.load_state_dict(checkpoint["actor_optimizer_state_dict"])
@@ -275,9 +275,9 @@ class PPOAgent:
         self.actor_scheduler.load_state_dict(checkpoint["actor_scheduler_state_dict"])
         self.critic_scheduler.load_state_dict(checkpoint["critic_scheduler_state_dict"])
         iteration = checkpoint["iteration"]
-        state_rms_mean = checkpoint["state_rms_mean"]
-        state_rms_var = checkpoint["state_rms_var"]
-        return iteration, state_rms_mean, state_rms_var
+        # state_rms_mean = checkpoint["state_rms_mean"]
+        # state_rms_var = checkpoint["state_rms_var"]
+        return iteration
 
     def set_to_eval_mode(self):
         self.actor.eval()
