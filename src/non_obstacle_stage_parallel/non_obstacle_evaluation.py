@@ -13,7 +13,7 @@ import sys
 import parallel_gazebo_non_obstacle_env as gazebo_env
 import csv  # CSVモジュールをインポート
 # GPUが使える場合はGPUを使う
-import datetime  # datetimeモジュールをインポート
+from datetime import datetime
 import os
 
 def set_seeds(seed_value):
