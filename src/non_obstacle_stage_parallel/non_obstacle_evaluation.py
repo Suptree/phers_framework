@@ -94,3 +94,12 @@ def main():
         string_done_category = "reach goal" if done_category == 0 else "collision" if done_category == 1 else "time up"
 
         print("total steps: {}, task time: {:.3f}, total reward: {:.3f}, done category: {}".format(total_steps, task_time, total_reward, string_done_category))                
+
+
+def exit(signal, frame):
+    print("\nCtrl+C detected. Saving training data and exiting...")    
+    sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()
