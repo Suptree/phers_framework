@@ -77,6 +77,7 @@ def main():
 
         while not done:
             total_steps += 1
+            state = torch.tensor(state, dtype=torch.float32)
             with torch.no_grad():
                 action = agent.actor(state)
             action = action.cpu().numpy()
