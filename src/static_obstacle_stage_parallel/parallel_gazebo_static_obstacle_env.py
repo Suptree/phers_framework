@@ -169,7 +169,21 @@ class GazeboEnvironment:
         self.state = list(next_state_pheromone_value) + [next_state_distance_to_goal, next_state_angle_to_goal, next_state_robot_linear_velocity_x, next_state_robot_angular_velocity_z]
         self.last_time = rospy.Time.now()
 
-        return self.state, reward, self.done, baseline_reward
+        # 訓練したNNモデルを評価するための情報を返す
+        info = None
+        # infoの設定
+        if self.done:
+            task_time = rospy.get_time() - self.reset_timer
+            if self.is_goal:
+                done_category = 0
+            elif self.is_collided:
+                done_category = 1
+            else: # self.is_timeout
+                done_category = 2
+            info = {"task_time": task_time, "done_category": done_category}
+ 
+
+        return self.state, reward, self.done, baseline_reward, info
 
 
     def calculate_rewards(self, next_state_distance_to_goal,next_state_robot_angular_velocity_z):

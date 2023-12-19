@@ -10,7 +10,7 @@ import torch.multiprocessing as mp
 from torch.multiprocessing import Manager
 import signal
 import sys
-import parallel_gazebo_non_obstacle_env as gazebo_env
+import parallel_gazebo_static_obstacle_env as gazebo_env
 import csv  # CSVモジュールをインポート
 # GPUが使える場合はGPUを使う
 from datetime import datetime
@@ -26,7 +26,7 @@ def main():
     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
    #　例外処理
     if len(sys.argv) < 2:
-        print("Usage: python3 non_obstacle_evaluation.py [model_path]")
+        print("Usage: python3 static_obstacle_evaluation.py [model_path]")
         sys.exit(0) 
 
     # 引数からモデルのパスを取得
@@ -38,16 +38,16 @@ def main():
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 100  # 100イテレーションごとにモデルを保存
     num_env = 16
-    seed_value = 1023
+    seed_value = 1020
     # 実験結果を格納するリスト
     results = []
     set_seeds(seed_value)
 
     # 引数からモデルのパスを取得
 
-    agent = PPOAgent(env_name="Parallel-Non-Obstacle",
+    agent = PPOAgent(env_name="Parallel-Static-Obstacle",
                     n_iteration=total_run, 
-                    n_states=4, 
+                    n_states=13, 
                     action_bounds=[-1, 1], 
                     n_actions=2, # 線形速度と角速度
                     actor_lr=3e-4, 
@@ -57,10 +57,11 @@ def main():
                     clip_epsilon=0.2, 
                     buffer_size=100000, 
                     batch_size=1024,
-                    collect_step=256,
+                    epoch=3,
+                    collect_step=512,
                     entropy_coefficient=0.01, 
                     device=device)
-    
+
     agent.load_weights(model_path)
     agent.set_to_eval_mode()
     env = gazebo_env.GazeboEnvironment(id=0)
@@ -101,10 +102,10 @@ def main():
         results.append([run, total_steps, task_time, total_reward, done_category])
     # CSVファイルに結果を書き出す
     start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    dir_name = f"./Evaluate-Non-Obstacle/{start_time}"
+    dir_name = f"./Evaluate-Static-Obstacle/{start_time}"
     # ディレクトリを作成
     os.makedirs(dir_name, exist_ok=True)
-    filename = f'{dir_name}/non_obstacle_results.csv'
+    filename = f'{dir_name}/static_obstacle_results.csv'
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
         # ヘッダーを書き込む
