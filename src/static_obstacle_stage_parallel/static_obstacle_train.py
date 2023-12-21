@@ -28,7 +28,7 @@ def main():
     total_iterations = 5000
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 50  # 100イテレーションごとにモデルを保存
-    num_env = 12
+    num_env = 8
     seed_value = 1023
         
     set_seeds(seed_value)
@@ -46,7 +46,7 @@ def main():
                     buffer_size=100000, 
                     batch_size=1024,
                     epoch=3,
-                    collect_step=256,
+                    collect_step=512,
                     entropy_coefficient=0.01, 
                     device=device)
 
@@ -68,7 +68,7 @@ def main():
         for result in results: 
             if result[0] is None:
                 continue
-            episode_data, rewards, entoripies, action_means, action_stds, action_samples = result
+            episode_data, rewards, baseline_rewards, entoripies, action_means, action_stds, action_samples = result
 
             action_T_means = np.array(action_means).T.tolist()
             action_T_stds = np.array(action_stds).T.tolist()
@@ -78,6 +78,8 @@ def main():
                 agent.trajectory_buffer.add_trajectory(episode)
             for reward in rewards:
                 agent.logger.reward_history.append(reward)
+            for baseline_reward in baseline_rewards:
+                agent.logger.baseline_reward_history.append(baseline_reward)
             for entropy in entoripies:
                 agent.logger.entropy_history.append(entropy)
             # print("action_means", action_means[0])

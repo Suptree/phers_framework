@@ -11,7 +11,7 @@
 	<node name="obs_03" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_03 -x 0.0000 -y 0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_04" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_04 -x 0.0000 -y -0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<!-- ゴール -->
-	<node name="goal_0" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_0 -x 0.4000 -y 0.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" />
+	<!-- <node name="goal_0" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_0 -x 0.4000 -y 0.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<!-- ロボット -->
 	<group ns ="hero_0">
     	<param name="tf_prefix" value="hero_0" />
@@ -29,7 +29,7 @@
 	<node name="obs_13" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_13 -x 20.0000 -y 0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_14" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_14 -x 20.0000 -y -0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<!-- ゴール -->
-	<node name="goal_1" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_1 -x 20.4000 -y 0.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" />
+	<!-- <node name="goal_1" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_1 -x 20.4000 -y 0.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 
 	<group ns ="hero_1">
     	<param name="tf_prefix" value="hero_1" />
@@ -47,7 +47,7 @@
 	<node name="obs_23" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_23 -x 40.0000 -y 0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_24" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_24 -x 40.0000 -y -0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<!-- ゴール -->
-	<node name="goal_2" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_2 -x 40.4000 -y 0.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" />
+	<!-- <node name="goal_2" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_2 -x 40.4000 -y 0.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<group ns ="hero_2">
     	<param name="tf_prefix" value="hero_2" />
     	<param name="robot_description_hero_2" command="$(find xacro)/xacro '$(find hero_description)/robot/hero_light.urdf'"/>
@@ -64,7 +64,7 @@
 	<node name="obs_33" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_33 -x 60.0000 -y 0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_34" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_34 -x 60.0000 -y -0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<!-- ゴール -->
-	<node name="goal_3" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_3 -x 60.4000 -y 0.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" />
+	<!-- <node name="goal_3" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_3 -x 60.4000 -y 0.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<group ns ="hero_3">
     	<param name="tf_prefix" value="hero_3" />
     	<param name="robot_description_hero_3" command="$(find xacro)/xacro '$(find hero_description)/robot/hero_light.urdf'"/>
@@ -81,7 +81,7 @@
 	<node name="obs_43" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_43 -x 0.0000 -y 20.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_44" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_44 -x 0.0000 -y 19.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<!-- ゴール -->
-	<node name="goal_4" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_4 -x 0.4000 -y 20.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" />
+	<!-- <node name="goal_4" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_4 -x 0.4000 -y 20.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<group ns ="hero_4">
     	<param name="tf_prefix" value="hero_4" />
     	<param name="robot_description_hero_4" command="$(find xacro)/xacro '$(find hero_description)/robot/hero_light.urdf'"/>
@@ -98,7 +98,7 @@
 	<node name="obs_53" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_53 -x 20.0000 -y 20.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_54" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_54 -x 20.0000 -y 19.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<!-- ゴール -->
-	<node name="goal_5" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_5 -x 20.4000 -y 20.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" />
+	<!-- <node name="goal_5" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_5 -x 20.4000 -y 20.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<group ns ="hero_5">
 		<param name="tf_prefix" value="hero_5" />
 		<param name="robot_description_hero_5" command="$(find xacro)/xacro '$(find hero_description)/robot/hero_light.urdf'"/>
@@ -115,7 +115,7 @@
 	<node name="obs_63" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_63 -x 40.0000 -y 20.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_64" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_64 -x 40.0000 -y 19.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<!-- ゴール -->
-	<node name="goal_6" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_6 -x 40.4000 -y 20.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" />
+	<!-- <node name="goal_6" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_6 -x 40.4000 -y 20.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<group ns ="hero_6">
 		<param name="tf_prefix" value="hero_6" />
 		<param name="robot_description_hero_6" command="$(find xacro)/xacro '$(find hero_description)/robot/hero_light.urdf'"/>
@@ -132,7 +132,7 @@
 	<node name="obs_73" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_73 -x 60.0000 -y 20.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_74" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_74 -x 60.0000 -y 19.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<!-- ゴール -->
-	<node name="goal_7" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_7 -x 60.4000 -y 20.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" />
+	<!-- <node name="goal_7" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_7 -x 60.4000 -y 20.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<group ns ="hero_7">
 		<param name="tf_prefix" value="hero_7" />
 		<param name="robot_description_hero_7" command="$(find xacro)/xacro '$(find hero_description)/robot/hero_light.urdf'"/>
