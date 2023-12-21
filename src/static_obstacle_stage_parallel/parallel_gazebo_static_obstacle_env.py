@@ -125,8 +125,6 @@ class GazeboEnvironment:
         twist.angular = Vector3(x=0, y=0, z=w)
         
         self.cmd_vel_pub.publish(twist)
-        # while rospy.Time.now() < current_time + rospy.Duration(0.1):
-        #     pass
         rospy.sleep(0.1)
 
         # アクション後の環境の状態を取得, 衝突判定やゴール判定も行う
@@ -182,7 +180,6 @@ class GazeboEnvironment:
                 done_category = 2
             info = {"task_time": task_time, "done_category": done_category}
  
-
         return self.state, reward, self.done, baseline_reward, info
 
 
@@ -243,7 +240,7 @@ class GazeboEnvironment:
         distance_to_goal =  math.sqrt((self.robot_position.x - self.goal_pos_x)**2
                              + (self.robot_position.y - self.goal_pos_y)**2)
         
-        if distance_to_goal <= 0.07:
+        if distance_to_goal <= (0.04408 + 0.02):
             return True
 
         return False
@@ -251,8 +248,8 @@ class GazeboEnvironment:
     def check_collision_to_obstacle(self):
         for obs in self.obstacle:
             distance_to_obstacle = math.sqrt((self.robot_position.x - obs[0])**2 + (self.robot_position.y - obs[1])**2)
-                
-            if distance_to_obstacle <= 0.07:
+            if distance_to_obstacle <= 0.04408 + 0.02:
+                print(f"obs: {obs}, distance_to_obstacle: {distance_to_obstacle}")
                 # print(f"obstacle(x, y): {obs[0]}, {obs[1]}")
                 # print("distance_to_obstacle: ", distance_to_obstacle)
                 return True
@@ -271,6 +268,7 @@ class GazeboEnvironment:
         # # ゴールの初期位置をランダムに設定
         goal_r = 0.8
         goal_radius = 2.0 * math.pi * random.random()
+        goal_radius = 0.0
 
         self.goal_pos_x = self.origin_x + goal_r * math.cos(goal_radius)
         self.goal_pos_y = self.origin_y + goal_r * math.sin(goal_radius)
@@ -284,6 +282,8 @@ class GazeboEnvironment:
 
         # 新しいゴールマーカーを設定
         self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
+        self.set_origin_marker()
+        self.set_object_marker()
 
         # フェロモンマップをリセット
         self.reset_pheromone_pub.publish(EmptyMsg())
@@ -291,6 +291,15 @@ class GazeboEnvironment:
         # ロボットの位置をリセット
         before = self.robot_position
         self.set_robot()
+        # ロボットの色をリセット
+        self.robot_color = "CYEAN"
+        color = ColorRGBA()
+        color.r = 0
+        color.g = 160
+        color.b = 233
+        color.a = 255
+        self.pub_led.publish(color)
+
         # # ロボットの位置がリセットされるまで待機
         rospy.sleep(3.0)
         
@@ -356,8 +365,9 @@ class GazeboEnvironment:
         marker = Marker()
         marker.header.frame_id = "world"
         marker.header.stamp = rospy.Time.now()
+        
         marker.ns = "goal"
-        marker.id = 0
+        marker.id = self.id * 1000 + 0
         marker.type = Marker.CYLINDER
         marker.action = Marker.ADD
 
@@ -379,30 +389,38 @@ class GazeboEnvironment:
         marker.color.a = 1.0
         self.marker_pub.publish(marker)
 
-        # Gazeebo
-        state_msg = ModelState()
-        state_msg.model_name = f"goal_{self.id}"
+    def set_object_marker(self):
+        i = 0
+        for obs in self.obstacle:
+            i = i +1
+            marker = Marker()
+            marker.header.frame_id = "world"
+            marker.header.stamp = rospy.Time.now()
         
-        state_msg.pose.position.x = x
-        state_msg.pose.position.y = y
-        state_msg.pose.position.z = 0.06
-        state_msg.pose.orientation.x = 0.0
-        state_msg.pose.orientation.y = 0.0
-        state_msg.pose.orientation.z = 0.0
-        state_msg.pose.orientation.w = 0.0
-        state_msg.twist.linear.x = 0.0
-        state_msg.twist.linear.y = 0.0
-        state_msg.twist.linear.z = 0.0
-        state_msg.twist.angular.x = 0.0
-        state_msg.twist.angular.y = 0.0
-        state_msg.twist.angular.z = 0.0
+            marker.ns = "obs"
+            marker.id = self.id * 1000 + 1 + i
+            marker.type = Marker.CYLINDER
+            marker.action = Marker.ADD
+
+            marker.pose.position.x = obs[0]
+            marker.pose.position.y = obs[1]
+            marker.pose.position.z = 0.02
+            marker.pose.orientation.x = 0.0
+            marker.pose.orientation.y = 0.0
+            marker.pose.orientation.z = 0.0
+            marker.pose.orientation.w = 1.0
+
+            marker.scale.x = 0.04
+            marker.scale.y = 0.04
+            marker.scale.z = 0.02
+
+            marker.color.r = 0.0
+            marker.color.g = 0.0
+            marker.color.b = 1.0
+            marker.color.a = 1.0
+            self.marker_pub.publish(marker)
+
         
-
-        try:
-            self.set_model_state(state_msg)
-        except rospy.ServiceException as e:
-            print("Spawn URDF service call failed: {0}".format(e))
-
     def shutdown(self):
         """
         Shuts down the ROS node.
@@ -415,3 +433,64 @@ class GazeboEnvironment:
 
         rospy.signal_shutdown("Closing Gazebo environment")
         rospy.spin()
+
+    def set_origin_marker(self):
+        """
+        Set a origin marker in the Gazebo world and Rviz.
+        """
+        # Rviz
+        marker = Marker()
+        marker.header.frame_id = "world"
+        marker.header.stamp = rospy.Time.now()
+
+        marker.ns = "origin"
+        marker.id = self.id * 1000 + 10
+        marker.type = Marker.CYLINDER
+        marker.action = Marker.ADD
+
+        marker.pose.position.x = 0
+        marker.pose.position.y = 0
+        marker.pose.position.z = 0
+        marker.pose.orientation.x = 0.0
+        marker.pose.orientation.y = 0.0
+        marker.pose.orientation.z = 0.0
+        marker.pose.orientation.w = 1.0
+
+        marker.scale.x = 0.02
+        marker.scale.y = 0.02
+        marker.scale.z = 0.02
+
+        marker.color.r = 0.0
+        marker.color.g = 1.0
+        marker.color.b = 1.0
+        marker.color.a = 1.0
+        self.marker_pub.publish(marker)
+
+
+
+        marker = Marker()
+        marker.header.frame_id = "world"
+        marker.header.stamp = rospy.Time.now()
+        marker.ns = "origin"
+        marker.id = self.id * 1000 + 11
+
+        marker.type = Marker.CUBE
+        marker.action = Marker.ADD
+        marker.pose.position.x = 0 
+        marker.pose.position.y = 0 
+        marker.pose.position.z = 0.0
+        marker.pose.orientation.x = 0.0 
+        marker.pose.orientation.y = 0.0
+        marker.pose.orientation.z = 0.0
+        marker.pose.orientation.w = 1.0
+
+        marker.scale.x = 0.02
+        marker.scale.y = 0.02
+        marker.scale.z = 0.01
+
+        marker.color.r = 1.0
+        marker.color.g = 1.0
+        marker.color.b = 0.0
+        marker.color.a = 1.0
+
+        self.marker_pub.publish(marker)

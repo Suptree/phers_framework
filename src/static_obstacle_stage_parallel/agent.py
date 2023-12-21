@@ -54,7 +54,6 @@ class PPOAgent:
         self.critic_scheduler = LambdaLR(self.actor_optimizer, lr_lambda=self.scheduler)
 
         self.logger = Logger(self.dir_name, self.n_actions)
-
     def get_action(self, id, state, local_actor):
         state = torch.tensor(state, dtype=torch.float32)
 
@@ -132,8 +131,8 @@ class PPOAgent:
                     total_steps += 1
                     action, log_prob_old, logger_entropy, logger_action_mean, logger_action_std, logger_action = self.get_action(id, state, share_memory_actor)
 
-                    next_state, reward, terminated, baseline_reward = env.step([action[0]*0.2,action[1]])
-
+                    next_state, reward, terminated, baseline_reward, _ = env.step([action[0]*0.2,action[1]])
+                    
                     total_reward += baseline_reward
                     if terminated:
                         done = 1

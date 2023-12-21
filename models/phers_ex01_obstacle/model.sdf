@@ -12,12 +12,12 @@
           <iyz>0</iyz>
           <izz>1e-08</izz>
         </inertia>
-        <pose>0 0 0 0 -0 0</pose>
+        <pose>0 0 0 0 0 0</pose>
       </inertial>
       <self_collide>0</self_collide>
       <enable_wind>0</enable_wind>
       <kinematic>0</kinematic>
-      <pose>0 -0.014827 0 0 -0 0</pose>
+      <pose>0 0 0 0 0 0</pose>
       <gravity>1</gravity>
       <visual name='visual'>
         <geometry>
@@ -39,18 +39,18 @@
           <specular>0.01 0.01 0.01 1</specular>
           <emissive>0 0 0 1</emissive>
         </material>
-        <pose>0 0 0 0 -0 0</pose>
+        <pose>0 0 0 0 0 0</pose>
         <transparency>0</transparency>
         <cast_shadows>1</cast_shadows>
       </visual>
       <collision name='collision'>
         <laser_retro>0</laser_retro>
         <max_contacts>10</max_contacts>
-        <pose>0 0 0 0 -0 0</pose>
+        <pose>0 0 0 0 0 0</pose>
         <geometry>
           <cylinder>
             <radius>0.02</radius>
-            <length>0.260473</length>
+            <length>0.1</length>
           </cylinder>
         </geometry>
         <surface>

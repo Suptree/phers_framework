@@ -24,7 +24,7 @@ class PheromoneFramework:
 
         # pheromonクラスのインスタンス生成
         self.pheromone = Pheromone(
-            grid_map_size=40, resolution=25, evaporation=0.0, diffusion=0.0
+            grid_map_size=40, resolution=50, evaporation=0.0, diffusion=0.0
         )
 
         # フェロモンの最大値と最小値を設定
@@ -50,7 +50,7 @@ class PheromoneFramework:
         # Publisher & Subscriber
         # フェロモン値を送信
         self.publish_pheromone = rospy.Publisher(
-            f"/{self.robot_name}/pheromone_value", Float32MultiArray, queue_size=10
+            f"/{self.robot_name}/pheromone_value", Float32MultiArray, queue_size=1
         )
         # gazeboの環境上にあるオブジェクトの状態を取得
         # 取得すると, pheromoneCallback関数が呼び出される
@@ -81,7 +81,7 @@ class PheromoneFramework:
                     marker.type = Marker.CUBE
                     marker.action = Marker.ADD
 
-                    marker.pose.position.z = 0.0
+                    marker.pose.position.z = 0.02
                     marker.pose.orientation.x = 0.0
                     marker.pose.orientation.y = 0.0
                     marker.pose.orientation.z = 0.0
@@ -100,7 +100,9 @@ class PheromoneFramework:
                         marker.pose.position.x,
                         marker.pose.position.y,
                     ) = self.indexToPos(i, j)
-                    marker.id = id
+                    # marker.pose.position.x += 0.01
+                    # marker.pose.position.y += 0.01
+                    marker.id = self.id * 1000 + 100 + id
                     id += 1
                     markerArray.markers.append(marker)
 
@@ -108,8 +110,10 @@ class PheromoneFramework:
 
     # 座標からフェロモングリッドへ変換
     def posToIndex(self, x, y):
-        x_index = math.floor((x - self.origin_x + self.pheromone.grid_map_size/2.0) * self.pheromone.resolution)
-        y_index = math.floor((y - self.origin_y + self.pheromone.grid_map_size/2.0) * self.pheromone.resolution)
+        # x_index = math.floor((x - self.origin_x + self.pheromone.grid_map_size/2.0) * self.pheromone.resolution)
+        # y_index = math.floor((y - self.origin_y + self.pheromone.grid_map_size/2.0) * self.pheromone.resolution)
+        x_index = math.floor((x - self.origin_x + ((1.0/self.pheromone.resolution)/2.0) + self.pheromone.grid_map_size/2.0) * self.pheromone.resolution)
+        y_index = math.floor((y - self.origin_y + ((1.0/self.pheromone.resolution)/2.0) + self.pheromone.grid_map_size/2.0) * self.pheromone.resolution)
         # print("x: {}, y: {}".format(x, y))
         # print("x - origin_x: {}, y - origin_y: {}".format(x - self.origin_x, y - self.origin_y))
         # print("x_index: {}, y_index: {}".format(x_index, y_index))
@@ -123,10 +127,13 @@ class PheromoneFramework:
         return x_index, y_index    # フェロモングリッドから座標へ変換
     
     
-    # セルの左下を返す
+    # セルの中央を返す
     def indexToPos(self, x_index, y_index): 
-        x = (x_index / self.pheromone.resolution) + self.origin_x -  (self.pheromone.grid_map_size / 2.0)
-        y = (y_index / self.pheromone.resolution) + self.origin_y - (self.pheromone.grid_map_size / 2.0)
+        # x = (x_index / self.pheromone.resolution) + self.origin_x -  (self.pheromone.grid_map_size / 2.0)
+        # y = (y_index / self.pheromone.resolution) + self.origin_y - (self.pheromone.grid_map_size / 2.0)
+        x = (x_index -  (self.pheromone.resolution * self.pheromone.grid_map_size / 2.0)) * (1.0 / self.pheromone.resolution) + self.origin_x
+        y = (y_index -  (self.pheromone.resolution * self.pheromone.grid_map_size / 2.0)) * (1.0 / self.pheromone.resolution) + self.origin_y
+
         return x, y
     
     def pheromoneCallback(self, model_status):
@@ -254,12 +261,12 @@ class Pheromone:
             # フェロモンを射出した時間を記録
             self.injection_timer = current_time
 
-    def injectionCircle(self, x, y, value, radius):
+    def injectionCircle(self, x_index, y_index, value, radius):
         radius = int(radius * self.resolution)
         for i in range(-radius, radius+1):
             for j in range(-radius, radius+1):
-                if math.sqrt(i**2 + j**2) <= radius:
-                    self.grid[x + i, y + j] = value
+                if i**2 + j**2 <= radius**2:
+                    self.grid[x_index + i, y_index + j] = value
     def update(self, min_pheromone_value, max_pheromone_value):
         current_time = rospy.get_time()
         time_elapsed = current_time - self.update_timer

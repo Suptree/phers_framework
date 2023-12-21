@@ -28,7 +28,7 @@ def main():
     total_iterations = 5000
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 50  # 100イテレーションごとにモデルを保存
-    num_env = 8
+    num_env = 12
     seed_value = 1023
         
     set_seeds(seed_value)
@@ -46,7 +46,7 @@ def main():
                     buffer_size=100000, 
                     batch_size=1024,
                     epoch=3,
-                    collect_step=512,
+                    collect_step=256,
                     entropy_coefficient=0.01, 
                     device=device)
 
