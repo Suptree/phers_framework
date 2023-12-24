@@ -27,7 +27,7 @@ def main():
 
     total_iterations = 50000
     plot_interval = 10  # 10イテレーションごとにグラフを保存
-    save_model_interval = 100  # 100イテレーションごとにモデルを保存
+    save_model_interval = 50  # 100イテレーションごとにモデルを保存
     num_env = 16
     seed_value = 1023
         
@@ -65,7 +65,7 @@ def main():
         
         print("Parallel data collection finished")
         for result in results: 
-            episode_data, rewards, entoripies, action_means, action_stds, action_samples = result
+            episode_data, rewards, baseline_rewards,entoripies, action_means, action_stds, action_samples = result
 
             action_T_means = np.array(action_means).T.tolist()
             action_T_stds = np.array(action_stds).T.tolist()
@@ -75,6 +75,8 @@ def main():
                 agent.trajectory_buffer.add_trajectory(episode)
             for reward in rewards:
                 agent.logger.reward_history.append(reward)
+            for baseline_reward in baseline_rewards:
+                agent.logger.baseline_reward_history.append(baseline_reward)
             for entropy in entoripies:
                 agent.logger.entropy_history.append(entropy)
             # print("action_means", action_means[0])

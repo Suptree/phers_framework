@@ -14,6 +14,7 @@ class Logger:
         self.dir_name = dir_name
         ## 報酬ログ
         self.reward_history = []
+        self.baseline_reward_history = []
         ## アクターとクリティックの損失ログ
         self.losses_actors = []
         self.losses_critics = []
@@ -101,6 +102,23 @@ class Logger:
         plt.ylabel("Learning Rate")
         plt.legend(loc='upper left')
         plt.grid(True)
+
+        plt.subplot(3, 4, 8)
+        reward_window_size = 10
+        plt.plot(self.baseline_reward_history, label="reward", color="green")
+        plt.plot(
+            self.compute_moving_average(
+                self.baseline_reward_history, window_size=reward_window_size
+            ),
+            label="moving reward",
+            color="red",
+        )
+        plt.title("Episode Baseline not T penalty Rewards")
+        plt.xlabel("Episode")
+        plt.ylabel("Total Reward")
+        plt.legend(loc='upper left')
+        plt.grid(True)
+
 
         # 保存
         plt.tight_layout()

@@ -146,7 +146,7 @@ class GazeboEnvironment:
         Rw = -1.0  # angular velocity penalty constant
         Ra = 30.0  # goal reward constant
         Rc = -30.0 # collision penalty constant
-        # Rt = -1.0  # time penalty
+        Rt = -1.0  # time penalty
         w_m = 0.8  # maximum allowable angular velocity
         wd_p = 4.0 # weight for positive distance
         wd_n = 6.0 # weight for negative distance
@@ -161,10 +161,11 @@ class GazeboEnvironment:
         else:
             r_d = wd_n * goal_to_distance_diff
         r_w = Rw if abs(next_state_robot_angular_velocity_z) > w_m else 0  # angular velocity penalty
+        r_t = Rt
+        reward = r_g + r_c + r_d + r_w + r_t
+        baseline_reward = r_g + r_c + r_d + r_w
 
-        reward = r_g + r_c + r_d + r_w
-
-        return reward, reward
+        return reward, baseline_reward
 
     def get_next_state(self):
 
