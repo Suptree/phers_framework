@@ -295,7 +295,7 @@ class GazeboEnvironment:
         marker.header.frame_id = "world"
         marker.header.stamp = rospy.Time.now()
         marker.ns = "goal"
-        marker.id = 0
+        marker.id = self.id
         marker.type = Marker.CYLINDER
         marker.action = Marker.ADD
 

@@ -14,6 +14,7 @@ class Logger:
         self.dir_name = dir_name
         ## 報酬ログ
         self.reward_history = []
+        self.baseline_reward_history = []
         ## アクターとクリティックの損失ログ
         self.losses_actors = []
         self.losses_critics = []
@@ -52,10 +53,26 @@ class Logger:
         plt.legend(loc='upper left')
         plt.grid(True)
 
+        # 累積報酬のプロット
+        plt.subplot(3, 4, 2)
+        reward_window_size = 10
+        plt.plot(self.baseline_reward_history, label="reward", color="green")
+        plt.plot(
+            self.compute_moving_average(
+                self.baseline_reward_history, window_size=reward_window_size
+            ),
+            label="moving reward",
+            color="red",
+        )
+        plt.title("Episode Baseline Rewards")
+        plt.xlabel("Episode")
+        plt.ylabel("Total Reward")
+        plt.legend(loc='upper left')
+        plt.grid(True)
 
         
         # アクターの損失のプロット
-        plt.subplot(3, 4, 2)
+        plt.subplot(3, 4, 3)
         plt.plot(self.losses_actors)
         plt.title("Actor Loss")
         plt.xlabel("Training Step")
@@ -63,7 +80,7 @@ class Logger:
         plt.grid(True)
 
         # クリティックの損失のプロット
-        plt.subplot(3, 4, 3)
+        plt.subplot(3, 4, 4)
         plt.plot(self.losses_critics)
         plt.title("Critic Loss")
         plt.xlabel("Training Step")
@@ -71,7 +88,7 @@ class Logger:
         plt.grid(True)
 
         # アドバンテージの平均のプロット
-        plt.subplot(3, 4, 4)
+        plt.subplot(3, 4, 5)
         plt.plot(self.advantage_mean_history)
         plt.title("Average Advantage")
         plt.xlabel("Iteration")
@@ -79,21 +96,21 @@ class Logger:
         plt.grid(True)
 
         # アドバンテージの分散のプロット
-        plt.subplot(3, 4, 5)
+        plt.subplot(3, 4, 6)
         plt.plot(self.advantage_variance_history)
         plt.title("Variance of Advantage")
         plt.xlabel("Iteration")
         plt.ylabel("Variance")
         plt.grid(True)
         # エントロピーの平均のプロット
-        plt.subplot(3, 4, 6)
+        plt.subplot(3, 4, 7)
         plt.plot(self.entropy_mean_history)
         plt.title("Entropy")
         plt.xlabel("Iteration")
         plt.ylabel("Entropy")
         plt.grid(True)
         # 学習率のプロット
-        plt.subplot(3, 4, 7)
+        plt.subplot(3, 4, 8)
         plt.plot(self.lr_actor_history, label="actor", color="red")
         plt.plot(self.lr_critic_history, label="critic", color="blue")
         plt.title("Learning Rate")

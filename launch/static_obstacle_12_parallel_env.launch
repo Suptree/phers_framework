@@ -141,5 +141,74 @@
 		<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
 	</group>
 
+	<!-- 9つ目の環境 -->
+	<node name="spawn_urdf_arena_8" pkg="gazebo_ros" type="spawn_model" args="-urdf -model arena_8 -x 0.0 -y 40.0 -z -0.0 -file $(find phers_framework)/models/arena_1/arena.urdf" />
+	<!-- 障害物 -->
+	<node name="obs_81" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_81 -x 0.4000 -y 40.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_82" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_82 -x -0.4000 -y 40.0 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_83" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_83 -x 0.0000 -y 40.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_84" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_84 -x 0.0000 -y 39.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<!-- ゴール -->
+	<!-- <node name="goal_8" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_8 -x 0.4000 -y 40.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
+	<group ns ="hero_8">
+		<param name="tf_prefix" value="hero_8" />
+		<param name="robot_description_hero_8" command="$(find xacro)/xacro '$(find hero_description)/robot/hero_light.urdf'"/>
+		<node name="spawn_urdf_hero_8" pkg="gazebo_ros" type="spawn_model" args="-urdf -model hero_8 -x 0.0 -y 40.0 -z 0.2395 -robot_namespace hero_8 -file $(find hero_description)/robot/hero_light.urdf" />
+		<node pkg="tf" type="static_transform_publisher" name="hero_8_broadcaster" args="0 40 0 0 0 0 world /hero_8/odom 20" />
+		<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+	</group>
+
+	<!-- 10つ目の環境 -->
+	<node name="spawn_urdf_arena_9" pkg="gazebo_ros" type="spawn_model" args="-urdf -model arena_9 -x 20.0 -y 40.0 -z -0.0 -file $(find phers_framework)/models/arena_1/arena.urdf" />
+	<!-- 障害物 -->
+	<node name="obs_91" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_91 -x 20.4000 -y 40.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_92" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_92 -x 19.6000 -y 40.0 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_93" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_93 -x 20.0000 -y 40.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_94" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_94 -x 20.0000 -y 39.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<!-- ゴール -->
+	<!-- <node name="goal_9" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_9 -x 20.4000 -y 40.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
+	<group ns ="hero_9">
+		<param name="tf_prefix" value="hero_9" />
+		<param name="robot_description_hero_9" command="$(find xacro)/xacro '$(find hero_description)/robot/hero_light.urdf'"/>
+		<node name="spawn_urdf_hero_9" pkg="gazebo_ros" type="spawn_model" args="-urdf -model hero_9 -x 20.0 -y 40.0 -z 0.2395 -robot_namespace hero_9 -file $(find hero_description)/robot/hero_light.urdf" />
+		<node pkg="tf" type="static_transform_publisher" name="hero_9_broadcaster" args="20 40 0 0 0 0 world /hero_9/odom 20" />
+		<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+	</group>
+
+	<!-- 11つ目の環境 -->
+	<node name="spawn_urdf_arena_10" pkg="gazebo_ros" type="spawn_model" args="-urdf -model arena_10 -x 40.0 -y 40.0 -z -0.0 -file $(find phers_framework)/models/arena_1/arena.urdf" />
+	<!-- 障害物 -->
+	<node name="obs_101" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_101 -x 40.4000 -y 40.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_102" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_102 -x 39.6000 -y 40.0 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_103" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_103 -x 40.0000 -y 40.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_104" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_104 -x 40.0000 -y 39.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<!-- ゴール -->
+	<!-- <node name="goal_10" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_10 -x 40.4000 -y 40.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
+	<group ns ="hero_10">
+		<param name="tf_prefix" value="hero_10" />
+		<param name="robot_description_hero_10" command="$(find xacro)/xacro '$(find hero_description)/robot/hero_light.urdf'"/>
+		<node name="spawn_urdf_hero_10" pkg="gazebo_ros" type="spawn_model" args="-urdf -model hero_10 -x 40.0 -y 40.0 -z 0.2395 -robot_namespace hero_10 -file $(find hero_description)/robot/hero_light.urdf" />
+		<node pkg="tf" type="static_transform_publisher" name="hero_10_broadcaster" args="40 40 0 0 0 0 world /hero_10/odom 20" />
+		<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+	</group>
+
+	<!-- 12つ目の環境 -->
+	<node name="spawn_urdf_arena_11" pkg="gazebo_ros" type="spawn_model" args="-urdf -model arena_11 -x 60.0 -y 40.0 -z -0.0 -file $(find phers_framework)/models/arena_1/arena.urdf" />
+	<!-- 障害物 -->
+	<node name="obs_111" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_111 -x 60.4000 -y 40.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_112" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_112 -x 59.6000 -y 40.0 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_113" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_113 -x 60.0000 -y 40.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_114" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_114 -x 60.0000 -y 39.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<!-- ゴール -->
+	<!-- <node name="goal_11" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_11 -x 60.4000 -y 40.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
+	<group ns ="hero_11">
+		<param name="tf_prefix" value="hero_11" />
+		<param name="robot_description_hero_11" command="$(find xacro)/xacro '$(find hero_description)/robot/hero_light.urdf'"/>
+		<node name="spawn_urdf_hero_11" pkg="gazebo_ros" type="spawn_model" args="-urdf -model hero_11 -x 60.0 -y 40.0 -z 0.2395 -robot_namespace hero_11 -file $(find hero_description)/robot/hero_light.urdf" />
+		<node pkg="tf" type="static_transform_publisher" name="hero_11_broadcaster" args="60 40 0 0 0 0 world /hero_11/odom 20" />
+		<node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"/>
+	</group>
+    
+
 
 </launch>

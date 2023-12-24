@@ -54,7 +54,6 @@ class PPOAgent:
         self.critic_scheduler = LambdaLR(self.actor_optimizer, lr_lambda=self.scheduler)
 
         self.logger = Logger(self.dir_name, self.n_actions)
-
     def get_action(self, id, state, local_actor):
         state = torch.tensor(state, dtype=torch.float32)
 
@@ -112,6 +111,7 @@ class PPOAgent:
 
         # ログ用のリストを作成
         logger_reward = []
+        logger_baseline_reward = []
         logger_entropies = []
         logger_action_means = []
         logger_action_stds = []
@@ -125,6 +125,7 @@ class PPOAgent:
                 # 1エピソードを格納するリスト
                 episode_data = []
                 total_reward = 0
+                total_baseline_reward = 0
                 total_steps = 0
 
                 while not done:
@@ -132,9 +133,10 @@ class PPOAgent:
                     total_steps += 1
                     action, log_prob_old, logger_entropy, logger_action_mean, logger_action_std, logger_action = self.get_action(id, state, share_memory_actor)
 
-                    next_state, reward, terminated, baseline_reward = env.step([action[0]*0.2,action[1]])
-
-                    total_reward += baseline_reward
+                    next_state, reward, terminated, baseline_reward, _ = env.step([action[0]*0.2,action[1]])
+                    
+                    total_reward += reward
+                    total_baseline_reward += baseline_reward
                     if terminated:
                         done = 1
 
@@ -153,13 +155,14 @@ class PPOAgent:
                 print(f"HERO_{id} Reward : {total_reward}, Step : {total_steps}")
                 trajectory.append(episode_data)
                 logger_reward.append(total_reward)
+                logger_baseline_reward.append(total_baseline_reward)
                 
                 if collect_step_count >= self.collect_step:
                     break
             # print(f"Finishing : Process {id} finished collecting data")
             env.shutdown()
             print(f"Process {id} is Finished")
-            return (trajectory, logger_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions)
+            return (trajectory, logger_reward, logger_baseline_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions)
         except Exception as e:
             print(f"ERROR : Process {id} is Finished")
             print(e)
