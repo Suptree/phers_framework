@@ -94,7 +94,7 @@ class PheromoneFramework:
                     marker.color.r = 0.0
                     marker.color.g = 1.0
                     marker.color.b = 0.0
-                    marker.color.a = 1.0
+                    marker.color.a = self.pheromone.grid[i][j]
 
                     (
                         marker.pose.position.x,
@@ -178,7 +178,7 @@ class PheromoneFramework:
         # Refactor repetitive code
         for obs in self.obstacles:
             x_index, y_index = self.posToIndex(obs[0], obs[1])
-            self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.06)
+            self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.08)
 
         self.publish_markers()
 
@@ -261,11 +261,19 @@ class Pheromone:
             # フェロモンを射出した時間を記録
             self.injection_timer = current_time
 
-    def injectionCircle(self, x_index, y_index, value, radius):
+    def injectionCircle(self, x_index, y_index, max_value, radius):
         radius = int(radius * self.resolution)
         for i in range(-radius, radius+1):
             for j in range(-radius, radius+1):
-                if i**2 + j**2 <= radius**2:
+                distance_squared = i**2 + j**2
+                if distance_squared <= radius**2:
+                    # 中心からの距離を計算
+                    distance = np.sqrt(distance_squared)
+
+                    # 中心に近いほど値が大きく、外縁に近いほど値が小さくなるようにする
+                    # 例: 線形減衰（max_value から 0 まで線形に減少）
+                    value = max_value * (1 - distance / radius)
+
                     self.grid[x_index + i, y_index + j] = value
     def update(self, min_pheromone_value, max_pheromone_value):
         current_time = rospy.get_time()
