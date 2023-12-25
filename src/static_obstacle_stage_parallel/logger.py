@@ -12,6 +12,9 @@ class Logger:
     def __init__(self, dir_name, n_actions):
         # log
         self.dir_name = dir_name
+        # csvファイルを保存するディレクトリを作成
+        os.makedirs(f"{self.dir_name}/training_history", exist_ok=True)
+
         ## 報酬ログ
         self.reward_history = []
         self.baseline_reward_history = []
@@ -160,66 +163,136 @@ class Logger:
         plt.close()
 
 
+    # def save_csv(self):
+    #     filename = f"{self.dir_name}/data_history.csv"
+
+
+    #     max_length = max(
+    #         len(self.reward_history),
+    #         # len(self.compute_moving_average(self.reward_history, window_size=10)),
+    #         len(self.losses_actors),
+    #         len(self.losses_critics),
+    #         len(self.advantage_mean_history),
+    #         len(self.advantage_variance_history),
+    #         len(self.entropy_mean_history),
+    #         len(self.lr_actor_history),
+    #         len(self.lr_critic_history),
+    #     )
+        
+    #     # 各リストの長さをmax_lengthに合わせる
+    #     reward_history = self.reward_history + [None] * (max_length - len(self.reward_history))
+    #     losses_actors = self.losses_actors + [None] * (max_length - len(self.losses_actors))
+    #     losses_critics = self.losses_critics + [None] * (max_length - len(self.losses_critics))
+    #     advantage_mean_history = self.advantage_mean_history + [None] * (max_length - len(self.advantage_mean_history))
+    #     advantage_variance_history = self.advantage_variance_history + [None] * (max_length - len(self.advantage_variance_history))        
+    #     lr_actor_history = self.lr_actor_history + [None] * (max_length - len(self.lr_actor_history))
+    #     lr_critic_history = self.lr_critic_history + [None] * (max_length - len(self.lr_critic_history))
+    #     entropy_mean_history = self.entropy_mean_history + [None] * (max_length - len(self.entropy_mean_history))
+
+    #     # self.reward_history をデータフレームに変換
+    #     new_df = pd.DataFrame({
+    #         "Episode Rewards": reward_history,
+    #         "Actor Loss": losses_actors,
+    #         "Critic Loss": losses_critics,
+    #         "Average Advantage": advantage_mean_history,
+    #         "Variance of Advantage": advantage_variance_history,
+    #         "Entropy": entropy_mean_history,
+    #         "Actor Learning Rate": lr_actor_history,
+    #         "Critic Learning Rate": lr_critic_history,
+    #         })
+
+    #     # 既存の CSV ファイルがある場合は読み込む
+    #     if os.path.exists(filename):
+    #         existing_df = pd.read_csv(filename)
+
+    #         # 既存のデータと新しいデータを比較
+    #         if not existing_df.equals(new_df):
+    #             # 新しいデータのみを抽出
+    #             new_data = new_df.iloc[len(existing_df):]
+
+    #             # 既存のデータと新しいデータを結合
+    #             updated_df = pd.concat([existing_df, new_data])
+    #         else:
+    #             updated_df = existing_df
+    #     else:
+    #         updated_df = new_df
+
+    #     # CSV ファイルに保存
+    #     updated_df.to_csv(filename, index=False)
+    #     print(f"Data saved to {filename}")
     def save_csv(self):
-        filename = f"{self.dir_name}/data_history.csv"
+        # 異なるデータカテゴリのファイル名を定義
+        rewards_filename = f"{self.dir_name}/training_history/episode_rewards.csv"
+        losses_filename = f"{self.dir_name}/training_history/actor_critic_losses.csv"
+        metrics_filename = f"{self.dir_name}/training_history/training_metrics.csv"
+        learning_rate_filename = f"{self.dir_name}/training_history/learning_rate.csv"
 
+        # Episode Rewards のデータフレームを作成して保存
+        rewards_df = pd.DataFrame({
+            "Episode Rewards": self.reward_history,
+            "Baseline Rewards": self.baseline_reward_history
+        })
+        self.save_dataframe_to_csv(rewards_df, rewards_filename)
 
-        max_length = max(
-            len(self.reward_history),
-            # len(self.compute_moving_average(self.reward_history, window_size=10)),
-            len(self.losses_actors),
-            len(self.losses_critics),
-            len(self.advantage_mean_history),
-            len(self.advantage_variance_history),
-            len(self.entropy_mean_history),
-            len(self.lr_actor_history),
-            len(self.lr_critic_history),
-        )
+        # Actor Loss と Critic Loss のデータフレームを作成して保存
+        losses_df = pd.DataFrame({
+            "Actor Loss": self.losses_actors,
+            "Critic Loss": self.losses_critics
+        })
+        self.save_dataframe_to_csv(losses_df, losses_filename)
 
-        # 各リストの長さをmax_lengthに合わせる
-        reward_history = self.reward_history + [None] * (max_length - len(self.reward_history))
-        losses_actors = self.losses_actors + [None] * (max_length - len(self.losses_actors))
-        losses_critics = self.losses_critics + [None] * (max_length - len(self.losses_critics))
-        advantage_mean_history = self.advantage_mean_history + [None] * (max_length - len(self.advantage_mean_history))
-        advantage_variance_history = self.advantage_variance_history + [None] * (max_length - len(self.advantage_variance_history))        
-        lr_actor_history = self.lr_actor_history + [None] * (max_length - len(self.lr_actor_history))
-        lr_critic_history = self.lr_critic_history + [None] * (max_length - len(self.lr_critic_history))
-        entropy_mean_history = self.entropy_mean_history + [None] * (max_length - len(self.entropy_mean_history))
+        # その他のトレーニングメトリクスのデータフレームを作成して保存
+        metrics_df = pd.DataFrame({
+            "Average Advantage": self.advantage_mean_history,
+            "Variance of Advantage": self.advantage_variance_history,
+            "Entropy": self.entropy_mean_history,
+            # "Actor Learning Rate": self.lr_actor_history,
+            # "Critic Learning Rate": self.lr_critic_history
+        })
+        self.save_dataframe_to_csv(metrics_df, metrics_filename)
 
-        # self.reward_history をデータフレームに変換
-        new_df = pd.DataFrame({
-            "Episode Rewards": reward_history,
-            "Actor Loss": losses_actors,
-            "Critic Loss": losses_critics,
-            "Average Advantage": advantage_mean_history,
-            "Variance of Advantage": advantage_variance_history,
-            "Entropy": entropy_mean_history,
-            "Actor Learning Rate": lr_actor_history,
-            "Critic Learning Rate": lr_critic_history,
-            })
+        # Actor と Critic の学習率のデータフレームを作成して保存
+        learning_rate_df = pd.DataFrame({
+            "Actor Learning Rate": self.lr_actor_history,
+            "Critic Learning Rate": self.lr_critic_history
+        })
+        self.save_dataframe_to_csv(learning_rate_df, learning_rate_filename)
 
+    # def save_dataframe_to_csv(self, dataframe, filename):
+    #     # 既存の CSV ファイルがある場合は読み込む
+    #     if os.path.exists(filename):
+    #         existing_df = pd.read_csv(filename)
+    #         updated_df = pd.concat([existing_df, dataframe]).drop_duplicates().reset_index(drop=True)
+    #     else:
+    #         updated_df = dataframe
+
+    #     # CSV ファイルに保存
+    #     updated_df.to_csv(filename, index=False)
+    #     print(f"Data saved to {filename}")
+
+    def save_dataframe_to_csv(self, dataframe, filename):
         # 既存の CSV ファイルがある場合は読み込む
         if os.path.exists(filename):
             existing_df = pd.read_csv(filename)
 
-            # 既存のデータと新しいデータを比較
-            if not existing_df.equals(new_df):
-                # 新しいデータのみを抽出
-                new_data = new_df.iloc[len(existing_df):]
+            # 既存のデータの長さと新しいデータの長さを比較
+            len_existing = len(existing_df)
+            len_new = len(dataframe)
 
-                # 既存のデータと新しいデータを結合
-                updated_df = pd.concat([existing_df, new_data])
+            # 新しいデータの末尾から必要な数の行を追加
+            if len_new > len_existing:
+                diff_df = dataframe.tail(len_new - len_existing)
+                updated_df = pd.concat([existing_df, diff_df]).reset_index(drop=True)
             else:
+                # 新しいデータが既存のデータより短いか同じ長さの場合、更新は不要
                 updated_df = existing_df
         else:
-            updated_df = new_df
+            updated_df = dataframe
 
         # CSV ファイルに保存
         updated_df.to_csv(filename, index=False)
         print(f"Data saved to {filename}")
-
-
-    # 移動平均を計算
+            # 移動平均を計算
     def compute_moving_average(self, history, window_size=10):
         moving_average = []
         for i in range(len(history)):
@@ -235,19 +308,49 @@ class Logger:
         # ヒストリーリストに追加
         self.advantage_mean_history.append(adv_mean)
         self.advantage_variance_history.append(adv_variance)
-
+        self.advantage_history = []
     def calucurate_entropy_mean(self):
         # エントロピーの平均を計算
         entropy_mean = np.mean(self.entropy_history)
 
         # ヒストリーリストに追加
         self.entropy_mean_history.append(entropy_mean)
-
-
-    def clear(self):
-        self.calucurate_advantage_mean_and_variance()
-        self.calucurate_entropy_mean()
-        self.advantage_history = []
         self.entropy_history = []
-    
-    # def clear_per_episode(self):
+
+    def load_and_merge_csv_data(self, dir_path):
+        # 異なるデータカテゴリのファイル名を定義
+        rewards_filename = f"{dir_path}/episode_rewards.csv"
+        losses_filename = f"{dir_path}/actor_critic_losses.csv"
+        metrics_filename = f"{dir_path}/training_metrics.csv"
+        learning_rate_filename = f"{dir_path}/learning_rate.csv"
+
+        # Episode Rewards のデータを読み込んで統合
+        if os.path.exists(rewards_filename):
+            rewards_df = pd.read_csv(rewards_filename)
+            self.reward_history.extend(rewards_df["Episode Rewards"].dropna().tolist())
+            self.baseline_reward_history.extend(rewards_df["Baseline Rewards"].dropna().tolist())
+        else:
+            print(f"{rewards_filename} does not exist.")
+
+        # Actor Loss と Critic Loss のデータを読み込んで統合
+        if os.path.exists(losses_filename):
+            losses_df = pd.read_csv(losses_filename)
+            self.losses_actors.extend(losses_df["Actor Loss"].dropna().tolist())
+            self.losses_critics.extend(losses_df["Critic Loss"].dropna().tolist())
+        else:
+            print(f"{losses_filename} does not exist.")
+        # その他のトレーニングメトリクスのデータを読み込んで統合
+        if os.path.exists(metrics_filename):
+            metrics_df = pd.read_csv(metrics_filename)
+            self.advantage_mean_history.extend(metrics_df["Average Advantage"].dropna().tolist())
+            self.advantage_variance_history.extend(metrics_df["Variance of Advantage"].dropna().tolist())
+            self.entropy_mean_history.extend(metrics_df["Entropy"].dropna().tolist())
+        else:
+            print(f"{metrics_filename} does not exist.")
+        # Actor と Critic の学習率のデータを読み込んで統合
+        if os.path.exists(learning_rate_filename):
+            learning_rate_df = pd.read_csv(learning_rate_filename)
+            self.lr_actor_history.extend(learning_rate_df["Actor Learning Rate"].dropna().tolist())
+            self.lr_critic_history.extend(learning_rate_df["Critic Learning Rate"].dropna().tolist())
+        else:
+            print(f"{learning_rate_filename} does not exist.")

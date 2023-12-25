@@ -29,7 +29,7 @@ def main():
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 50  # 100イテレーションごとにモデルを保存
     num_env = 8
-    seed_value = 1023
+    seed_value = 1999
         
     set_seeds(seed_value)
 
@@ -46,12 +46,15 @@ def main():
                     buffer_size=100000, 
                     batch_size=1024,
                     epoch=3,
-                    collect_step=512,
+                    collect_step=256,
                     entropy_coefficient=0.01, 
                     device=device)
 
-
     agent.save_setting_config()
+    # 途中から始める場合、以下のコメントアウトを外す
+    # agent.load_weights(filepoath)
+    agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2023-12-26_04-02-12/training_history")
+
     signal.signal(signal.SIGINT, exit)
     for iteration in range(total_iterations):
         print("+++++++++++++++++++  iteration: {}++++++++++++++".format(iteration))
@@ -113,13 +116,16 @@ def main():
         agent.trajectory_buffer.reset()
         agent.replay_memory_buffer.reset()
         
-        # LOGGER
-        agent.logger.clear()
         if iteration % save_model_interval == 0:
             agent.save_weights(iteration)
         if iteration % plot_interval == 0:
             agent.logger.plot_graph(iteration, agent.n_actions)    
             agent.logger.save_csv()
+
+        # LOGGER
+        agent.logger.calucurate_advantage_mean_and_variance()
+        agent.logger.calucurate_entropy_mean()
+
 def exit(signal, frame):
     print("\nCtrl+C detected. Saving training data and exiting...")    
     sys.exit(0)
