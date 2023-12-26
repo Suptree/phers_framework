@@ -28,8 +28,8 @@ def main():
     total_iterations = 5000
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 50  # 100イテレーションごとにモデルを保存
-    num_env = 12
-    seed_value = 1999
+    num_env = 8
+    seed_value = 10
         
     set_seeds(seed_value)
 
@@ -44,7 +44,7 @@ def main():
                     gae_lambda=0.95, 
                     clip_epsilon=0.2, 
                     buffer_size=100000, 
-                    batch_size=1024,
+                    batch_size=512,
                     epoch=3,
                     collect_step=256,
                     entropy_coefficient=0.01, 
@@ -52,8 +52,8 @@ def main():
 
     agent.save_setting_config()
     # 途中から始める場合、以下のコメントアウトを外す
-    # agent.load_weights(filepoath)
-    # agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2023-12-26_04-02-12/training_history")
+    # agent.load_weights("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2023-12-26_15-05-32/100_weights.pth")
+    # agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2023-12-26_15-05-32/training_history")
 
     signal.signal(signal.SIGINT, exit)
     for iteration in range(total_iterations):
@@ -118,9 +118,10 @@ def main():
         
         if iteration % save_model_interval == 0:
             agent.save_weights(iteration)
+            agent.logger.save_csv()
+
         if iteration % plot_interval == 0:
             agent.logger.plot_graph(iteration, agent.n_actions)    
-            agent.logger.save_csv()
 
         # LOGGER
         agent.logger.calucurate_advantage_mean_and_variance()

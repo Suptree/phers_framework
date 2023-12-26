@@ -160,8 +160,8 @@ class PheromoneFramework:
                         self.pheromone.getPheromone(x_index + i - 1, y_index + j - 1)
                     )
         except Exception as e:
-            print("Error occured in pheromoneCallback")
-            print(e)
+            # print("Error occured in pheromoneCallback")
+            # print(e)
             pheromone_value = Float32MultiArray()
             for _ in range(9):
                 pheromone_value.data.append(0.0)
