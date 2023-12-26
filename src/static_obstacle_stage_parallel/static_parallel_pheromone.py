@@ -43,9 +43,9 @@ class PheromoneFramework:
             (self.origin_x + (-0.4), self.origin_y + 0.0)
         ]
         
-        for obs in self.obstacles:
-            x_index, y_index = self.posToIndex(obs[0], obs[1])
-            self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.06)
+        # for obs in self.obstacles:
+        #     x_index, y_index = self.posToIndex(obs[0], obs[1])
+        #     self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.06)
 
         # Publisher & Subscriber
         # フェロモン値を送信
@@ -178,7 +178,7 @@ class PheromoneFramework:
         # Refactor repetitive code
         for obs in self.obstacles:
             x_index, y_index = self.posToIndex(obs[0], obs[1])
-            self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.08)
+            self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.06)
 
         self.publish_markers()
 

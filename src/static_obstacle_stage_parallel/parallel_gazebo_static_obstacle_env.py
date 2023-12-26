@@ -203,8 +203,8 @@ class GazeboEnvironment:
             r_d = wd_n * goal_to_distance_diff
         r_w = Rw if abs(next_state_robot_angular_velocity_z) > w_m else 0  # angular velocity penalty
         r_t = Rt
-        reward = r_g + r_c + r_d + r_w + r_t
-        baseline_reward = r_g + r_c + r_d + r_w
+        reward = r_g + r_c + r_d + r_w
+        baseline_reward = r_g + r_c + r_d + r_w + r_t
 
         return reward, baseline_reward
 

@@ -28,7 +28,7 @@ def main():
     total_iterations = 5000
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 50  # 100イテレーションごとにモデルを保存
-    num_env = 8
+    num_env = 12
     seed_value = 1999
         
     set_seeds(seed_value)
@@ -53,7 +53,7 @@ def main():
     agent.save_setting_config()
     # 途中から始める場合、以下のコメントアウトを外す
     # agent.load_weights(filepoath)
-    agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2023-12-26_04-02-12/training_history")
+    # agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2023-12-26_04-02-12/training_history")
 
     signal.signal(signal.SIGINT, exit)
     for iteration in range(total_iterations):
