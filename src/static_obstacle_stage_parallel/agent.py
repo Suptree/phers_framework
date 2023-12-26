@@ -133,7 +133,7 @@ class PPOAgent:
                     total_steps += 1
                     action, log_prob_old, logger_entropy, logger_action_mean, logger_action_std, logger_action = self.get_action(id, state, share_memory_actor)
 
-                    next_state, reward, terminated, baseline_reward, _ = env.step([(action[0]+1.0)*0.1,action[1]])
+                    next_state, reward, terminated, baseline_reward, _ = env.step([action[0]*0.2,action[1]])
                     
                     total_reward += reward
                     total_baseline_reward += baseline_reward
