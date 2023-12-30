@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
 class Actor(nn.Module):
     def __init__(self, n_states, n_actions):
         super().__init__()
@@ -14,12 +13,31 @@ class Actor(nn.Module):
         self.fc2 = nn.Linear(in_features=64, out_features=64)
         self.fc_linear = nn.Linear(in_features=64, out_features=1)
         self.fc_angular = nn.Linear(in_features=64, out_features=1)
+        # self.__init__weights(self.fc1)
+        # self.__init__weights(self.fc2)
+        # self.__init__weights(self.fc_linear)
+        # self.__init__weights(self.fc_angular)
+        # print("self.fc1_bias: ", self.fc1.bias)
+        # print("self.fc2_bias: ", self.fc2.bias)
+        # print("self.fc_liner_bias: ", self.fc_linear.bias)
+        # print("self.fc_angular_bias: ", self.fc_angular.bias)
+
+        # print("self.fc1_weight: ", self.fc1.weight)
+        # print("self.fc2_weight: ", self.fc2.weight)
+        # print("self.fc_liner_weight: ", self.fc_linear.weight)
+        
 
         # self.log_std = nn.Parameter(torch.full((self.n_actions,),-2.5))
         self.log_std = nn.Parameter(torch.tensor([-4.0, -2.5]))
 
         # ネットワークのアーキテクチャ情報を保存
         self.architecture = {'layers': [n_states, 64, 64, n_actions]}
+    
+    # def __init__weights(self, module):
+    #     if isinstance(module, nn.Linear):
+    #         module.bias.data.zero_()
+    #         # module.weight.data.normal_(0, 0.1)
+        
 
     def forward(self, x):
 

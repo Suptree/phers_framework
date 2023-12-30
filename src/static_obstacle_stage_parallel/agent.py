@@ -81,9 +81,14 @@ class PPOAgent:
         #     log_prob_old[1] -= torch.log(1 - action[1].pow(2) + 1e-6)
 
         # LOGGER - 新しいリスト構造を使用
-        logger_action_mean = action_mean.cpu().numpy()
-        logger_action_std = action_std.cpu().numpy()
-        logger_action = action.cpu().numpy()
+        if id == 0 :
+            logger_action_mean = action_mean.cpu().numpy()
+            logger_action_std = action_std.cpu().numpy()
+            logger_action = action.cpu().numpy()
+        else:
+            logger_action_mean = None
+            logger_action_std = None
+            logger_action = None
 
         # action[0] = action[0] * 0.2
         # logger_action[0] = logger_action[0] * 0.2
@@ -119,6 +124,7 @@ class PPOAgent:
         try:
             while True:
                 state = env.reset(seed=random.randint(0,100000))
+                # print("reset_state", state)
                 # print(f"Process {id} : Started collecting data")
                 # print("state", state)
                 done = False
@@ -142,15 +148,16 @@ class PPOAgent:
 
                     episode_data.append((state, action, log_prob_old, reward, next_state, done))
                     state = next_state
+                    # print("nextstate", state)
 
 
                     logger_entropies.append(logger_entropy)
-                    
-                    logger_action_means.append(logger_action_mean)
-                    # print("logger_action_mean", logger_action_mean)
-                    # print("logger_action_means", logger_action_means)
-                    logger_action_stds.append(logger_action_std)
-                    logger_actions.append(logger_action)
+                    if id == 0:
+                        logger_action_means.append(logger_action_mean)
+                        # print("logger_action_mean", logger_action_mean)
+                        # print("logger_action_means", logger_action_means)
+                        logger_action_stds.append(logger_action_std)
+                        logger_actions.append(logger_action)
 
                 print(f"HERO_{id} Reward : {total_reward}, Step : {total_steps}")
                 trajectory.append(episode_data)

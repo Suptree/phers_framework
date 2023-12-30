@@ -29,7 +29,7 @@ def main():
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 50  # 100イテレーションごとにモデルを保存
     num_env = 8
-    seed_value = 10
+    seed_value = 1023
         
     set_seeds(seed_value)
 
@@ -38,8 +38,8 @@ def main():
                     n_states=13, 
                     action_bounds=[-1, 1], 
                     n_actions=2, # 線形速度と角速度
-                    actor_lr=3e-4, 
-                    critic_lr=3e-4, 
+                    actor_lr=3e-3, 
+                    critic_lr=3e-3, 
                     gamma=0.99, 
                     gae_lambda=0.95, 
                     clip_epsilon=0.2, 
@@ -52,8 +52,8 @@ def main():
 
     agent.save_setting_config()
     # 途中から始める場合、以下のコメントアウトを外す
-    # agent.load_weights("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2023-12-26_15-05-32/100_weights.pth")
-    # agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2023-12-26_15-05-32/training_history")
+    # agent.load_weights("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2023-12-26_22-37-03/1050_weights.pth")
+    # agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2023-12-26_22-37-03/training_history")
 
     signal.signal(signal.SIGINT, exit)
     for iteration in range(total_iterations):
@@ -72,11 +72,18 @@ def main():
             if result[0] is None:
                 continue
             episode_data, rewards, baseline_rewards, entoripies, action_means, action_stds, action_samples = result
-
-            action_T_means = np.array(action_means).T.tolist()
-            action_T_stds = np.array(action_stds).T.tolist()
-            action_T_samples = np.array(action_samples).T.tolist()
-
+            if len(action_means) != 0:
+                action_T_means = np.array(action_means).T.tolist()
+                action_T_stds = np.array(action_stds).T.tolist()
+                action_T_samples = np.array(action_samples).T.tolist()
+                for i in range(agent.n_actions):
+                    for action_mean in action_T_means[i]:
+                        # print(action_mean)
+                        agent.logger.action_means_history[i].append(action_mean)
+                    for action_std in action_T_stds[i]:
+                        agent.logger.action_stds_history[i].append(action_std)
+                    for action_sample in action_T_samples[i]:
+                        agent.logger.action_samples_history[i].append(action_sample)
             for episode in episode_data:
                 agent.trajectory_buffer.add_trajectory(episode)
             for reward in rewards:
@@ -86,14 +93,6 @@ def main():
             for entropy in entoripies:
                 agent.logger.entropy_history.append(entropy)
             # print("action_means", action_means[0])
-            for i in range(agent.n_actions):
-                for action_mean in action_T_means[i]:
-                    # print(action_mean)
-                    agent.logger.action_means_history[i].append(action_mean)
-                for action_std in action_T_stds[i]:
-                    agent.logger.action_stds_history[i].append(action_std)
-                for action_sample in action_T_samples[i]:
-                    agent.logger.action_samples_history[i].append(action_sample)
 
         # アドバンテージの計算
         agent.compute_advantages_and_add_to_buffer()
@@ -121,7 +120,9 @@ def main():
             agent.logger.save_csv()
 
         if iteration % plot_interval == 0:
-            agent.logger.plot_graph(iteration, agent.n_actions)    
+            agent.logger.plot_graph(iteration, agent.n_actions)
+        # Agentのログをクリア
+        agent.logger.clear_action_logs()
 
         # LOGGER
         agent.logger.calucurate_advantage_mean_and_variance()

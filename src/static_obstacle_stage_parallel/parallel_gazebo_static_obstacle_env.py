@@ -267,12 +267,12 @@ class GazeboEnvironment:
             random.seed(seed)
 
         # # ゴールの初期位置をランダムに設定
-        goal_r = 0.8
-        goal_radius = 2.0 * math.pi * random.random()
+        # goal_r = 0.8
+        # goal_radius = 2.0 * math.pi * random.random()
 
-        self.goal_pos_x = self.origin_x + goal_r * math.cos(goal_radius)
-        self.goal_pos_y = self.origin_y + goal_r * math.sin(goal_radius)
-
+        # self.goal_pos_x = self.origin_x + goal_r * math.cos(goal_radius)
+        # self.goal_pos_y = self.origin_y + goal_r * math.sin(goal_radius)
+        self.set_random_goal()
         # ロボット停止命令
         twist = Twist()
         twist.linear = Vector3(x=0, y=0, z=0)
@@ -330,6 +330,18 @@ class GazeboEnvironment:
         self.state = list(self.pheromone_value) + [self.distance_to_goal, angle_to_goal,self.robot_linear_velocity.x, self.robot_angular_velocity.z]
 
         return self.state
+    
+    def set_random_goal(self):
+        goal_r = 0.8
+        # 0度、90度、180度、270度のいずれかに±10度の範囲でランダムに選ぶ
+        base_angles = [0, math.pi / 2, math.pi, 3 * math.pi / 2]  # 基本の角度（ラジアン）
+        angle_offset = math.radians(10)  # ±10度の範囲
+
+        # 基本の角度からランダムなオフセットを加える
+        goal_angle = random.choice(base_angles) + random.uniform(-angle_offset, angle_offset)
+
+        self.goal_pos_x = self.origin_x + goal_r * math.cos(goal_angle)
+        self.goal_pos_y = self.origin_y + goal_r * math.sin(goal_angle)
     def set_robot(self):
 
         state_msg = ModelState()

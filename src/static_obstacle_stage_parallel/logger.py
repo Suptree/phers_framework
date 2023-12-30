@@ -354,3 +354,7 @@ class Logger:
             self.lr_critic_history.extend(learning_rate_df["Critic Learning Rate"].dropna().tolist())
         else:
             print(f"{learning_rate_filename} does not exist.")
+
+    def clear_action_logs(self):
+        self.action_means_history = [[] for _ in range(len(self.action_means_history))]
+        self.action_samples_history = [[] for _ in range(len(self.action_samples_history))]
