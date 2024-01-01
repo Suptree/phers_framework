@@ -29,7 +29,7 @@ def main():
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 50  # 100イテレーションごとにモデルを保存
     num_env = 8
-    seed_value = 1023
+    seed_value = 1024
         
     set_seeds(seed_value)
 
@@ -71,7 +71,7 @@ def main():
         for result in results: 
             if result[0] is None:
                 continue
-            episode_data, rewards, baseline_rewards, entoripies, action_means, action_stds, action_samples = result
+            episode_data, rewards, baseline_rewards, entoripies, action_means, action_stds, action_samples, angle_to_goals = result
             if len(action_means) != 0:
                 action_T_means = np.array(action_means).T.tolist()
                 action_T_stds = np.array(action_stds).T.tolist()
@@ -84,6 +84,8 @@ def main():
                         agent.logger.action_stds_history[i].append(action_std)
                     for action_sample in action_T_samples[i]:
                         agent.logger.action_samples_history[i].append(action_sample)
+                for angle_to_goal in angle_to_goals:
+                    agent.logger.angle_to_goal_history.append(angle_to_goal)
             for episode in episode_data:
                 agent.trajectory_buffer.add_trajectory(episode)
             for reward in rewards:

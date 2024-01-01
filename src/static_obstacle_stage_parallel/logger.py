@@ -35,7 +35,7 @@ class Logger:
         self.action_means_history = [[] for _ in range(n_actions)]
         self.action_stds_history = [[] for _ in range(n_actions)]
         self.action_samples_history = [[] for _ in range(n_actions)]
-
+        self.angle_to_goal_history = []
 
     def plot_graph(self, iteration, n_actions):
         plt.figure(figsize=(30, 18))
@@ -130,7 +130,7 @@ class Logger:
 
 
         # n_actions の値に基づいて新しい Figure を作成
-        n_rows = n_actions
+        n_rows = n_actions+1  # アクションの数と角度のために1行追加
         n_cols = 2  # 平均とサンプルのグラフと標準偏差のグラフのために2列
 
         plt.figure(figsize=(16, 6 * n_rows))  # Figure のサイズを調整
@@ -153,6 +153,15 @@ class Logger:
             plt.ylabel("Action Standard Deviation")
             plt.grid(True)
             plt.legend(loc='upper left')
+
+        # 角度の履歴のプロット
+        plt.subplot(n_rows, n_cols, n_cols * n_rows - 1)  # 新しいサブプロット位置を設定
+        plt.plot(self.angle_to_goal_history, label="Angle to Goal", color="purple")
+        plt.title("Robot Angle to Goal")
+        plt.xlabel("Step")
+        plt.ylabel("Angle (degrees)")
+        plt.legend(loc='upper left')
+        plt.grid(True)
 
         # グラフを表示
         plt.tight_layout()

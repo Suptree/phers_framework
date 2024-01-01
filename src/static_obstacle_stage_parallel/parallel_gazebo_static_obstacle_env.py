@@ -178,8 +178,9 @@ class GazeboEnvironment:
                 done_category = 1
             else: # self.is_timeout
                 done_category = 2
-            info = {"task_time": task_time, "done_category": done_category}
- 
+            info = {"task_time": task_time, "done_category": done_category, "angle_to_goal": math.degrees(next_state_angle_to_goal)}
+        else:
+            info = {"task_time": None, "done_category": None, "angle_to_goal": math.degrees(next_state_angle_to_goal)}
         return self.state, reward, self.done, baseline_reward, info
 
 

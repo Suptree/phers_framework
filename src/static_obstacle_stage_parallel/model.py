@@ -27,8 +27,8 @@ class Actor(nn.Module):
         # print("self.fc_liner_weight: ", self.fc_linear.weight)
         
 
-        # self.log_std = nn.Parameter(torch.full((self.n_actions,),-2.5))
-        self.log_std = nn.Parameter(torch.tensor([-4.0, -2.5]))
+        self.log_std = nn.Parameter(torch.full((self.n_actions,),-2.5))
+        # self.log_std = nn.Parameter(torch.tensor([-4.0, -2.5]))
 
         # ネットワークのアーキテクチャ情報を保存
         self.architecture = {'layers': [n_states, 64, 64, n_actions]}
@@ -44,8 +44,8 @@ class Actor(nn.Module):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         
-        mean_linear = F.tanh(F.relu((self.fc_linear(x))))
-        # mean_linear = F.tanh(self.fc_linear(x))
+        # mean_linear = F.tanh(F.relu((self.fc_linear(x))))
+        mean_linear = F.tanh(self.fc_linear(x))
         mean_angular = F.tanh(self.fc_angular(x))
         
         mean = torch.cat([mean_linear, mean_angular], dim=-1)        

@@ -178,7 +178,7 @@ class PheromoneFramework:
         # Refactor repetitive code
         for obs in self.obstacles:
             x_index, y_index = self.posToIndex(obs[0], obs[1])
-            self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.06)
+            self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.30)
 
         self.publish_markers()
 
@@ -274,7 +274,7 @@ class Pheromone:
                     # 例: 線形減衰（max_value から 0 まで線形に減少）
                     value = max_value * (1 - distance / radius)
 
-                    self.grid[x_index + i, y_index + j] = value
+                    self.grid[x_index + i, y_index + j] = self.grid[x_index + i, y_index + j] + value
     def update(self, min_pheromone_value, max_pheromone_value):
         current_time = rospy.get_time()
         time_elapsed = current_time - self.update_timer

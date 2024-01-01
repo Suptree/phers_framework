@@ -121,6 +121,8 @@ class PPOAgent:
         logger_action_means = []
         logger_action_stds = []
         logger_actions = []
+        logger_angle_to_goal = []
+        collect_action_flag = True
         try:
             while True:
                 state = env.reset(seed=random.randint(0,100000))
@@ -139,7 +141,7 @@ class PPOAgent:
                     total_steps += 1
                     action, log_prob_old, logger_entropy, logger_action_mean, logger_action_std, logger_action = self.get_action(id, state, share_memory_actor)
 
-                    next_state, reward, terminated, baseline_reward, _ = env.step([action[0]*0.2,action[1]])
+                    next_state, reward, terminated, baseline_reward, info = env.step([(action[0]+1.0)*0.1,action[1]])
                     
                     total_reward += reward
                     total_baseline_reward += baseline_reward
@@ -152,12 +154,16 @@ class PPOAgent:
 
 
                     logger_entropies.append(logger_entropy)
-                    if id == 0:
+                    if id == 0 and collect_action_flag:
+                        print("info", info)
                         logger_action_means.append(logger_action_mean)
                         # print("logger_action_mean", logger_action_mean)
                         # print("logger_action_means", logger_action_means)
                         logger_action_stds.append(logger_action_std)
                         logger_actions.append(logger_action)
+                        logger_angle_to_goal.append(info["angle_to_goal"])
+                        
+
 
                 print(f"HERO_{id} Reward : {total_reward}, Step : {total_steps}")
                 trajectory.append(episode_data)
@@ -166,15 +172,16 @@ class PPOAgent:
                 
                 if collect_step_count >= self.collect_step:
                     break
+                collect_action_flag = False
             # print(f"Finishing : Process {id} finished collecting data")
             env.shutdown()
             print(f"Process {id} is Finished")
-            return (trajectory, logger_reward, logger_baseline_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions)
+            return (trajectory, logger_reward, logger_baseline_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions, logger_angle_to_goal)
         except Exception as e:
             print(f"ERROR : Process {id} is Finished")
             print(e)
             env.shutdown()
-            return (None, None, None, None, None, None)
+            return (None, None, None, None, None, None, None, None)
         
     def compute_advantages_and_add_to_buffer(self):
         for trajectory in self.trajectory_buffer.buffer:
