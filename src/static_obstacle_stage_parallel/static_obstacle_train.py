@@ -38,8 +38,8 @@ def main():
                     n_states=13, 
                     action_bounds=[-1, 1], 
                     n_actions=2, # 線形速度と角速度
-                    actor_lr=3e-3, 
-                    critic_lr=3e-3, 
+                    actor_lr=3e-4, 
+                    critic_lr=3e-4, 
                     gamma=0.99, 
                     gae_lambda=0.95, 
                     clip_epsilon=0.2, 
