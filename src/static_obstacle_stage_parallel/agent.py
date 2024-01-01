@@ -155,7 +155,6 @@ class PPOAgent:
 
                     logger_entropies.append(logger_entropy)
                     if id == 0 and collect_action_flag:
-                        print("info", info)
                         logger_action_means.append(logger_action_mean)
                         # print("logger_action_mean", logger_action_mean)
                         # print("logger_action_means", logger_action_means)
