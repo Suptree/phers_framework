@@ -267,13 +267,13 @@ class GazeboEnvironment:
         if seed is not None:
             random.seed(seed)
 
-        # # ゴールの初期位置をランダムに設定
-        # goal_r = 0.8
-        # goal_radius = 2.0 * math.pi * random.random()
+        # ゴールの初期位置をランダムに設定
+        goal_r = 0.8
+        goal_radius = 2.0 * math.pi * random.random()
 
-        # self.goal_pos_x = self.origin_x + goal_r * math.cos(goal_radius)
-        # self.goal_pos_y = self.origin_y + goal_r * math.sin(goal_radius)
-        self.set_random_goal()
+        self.goal_pos_x = self.origin_x + goal_r * math.cos(goal_radius)
+        self.goal_pos_y = self.origin_y + goal_r * math.sin(goal_radius)
+        # self.set_random_goal()
         # ロボット停止命令
         twist = Twist()
         twist.linear = Vector3(x=0, y=0, z=0)
