@@ -206,8 +206,8 @@ class GazeboEnvironment:
             r_d = wd_n * goal_to_distance_diff
         r_w = Rw if abs(next_state_robot_angular_velocity_z) > w_m else 0  # angular velocity penalty
         r_t = Rt
-        reward = r_g + r_c + r_d + r_w
-        baseline_reward = r_g + r_c + r_d + r_w + r_t
+        reward = r_g + r_c + r_d + r_w - np.mean(self.pheromone_value)
+        baseline_reward = r_g + r_c + r_d + r_w
 
         return reward, baseline_reward
 
