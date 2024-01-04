@@ -36,6 +36,7 @@ class Logger:
         self.action_stds_history = [[] for _ in range(n_actions)]
         self.action_samples_history = [[] for _ in range(n_actions)]
         self.angle_to_goal_history = []
+        self.pheromone_average_history = []
 
     def plot_graph(self, iteration, n_actions):
         plt.figure(figsize=(30, 18))
@@ -128,6 +129,7 @@ class Logger:
         plt.savefig(filename)
         plt.close()
 
+    def plot_action_graph(self, iteration, n_actions):
 
         # n_actions の値に基づいて新しい Figure を作成
         n_rows = n_actions+1  # アクションの数と角度のために1行追加
@@ -137,7 +139,7 @@ class Logger:
         for i in range(n_actions):
             # 平均とサンプルのグラフ
             plt.subplot(n_rows, n_cols, 2 * i + 1)
-            plt.scatter(range(len(self.action_samples_history[i])), self.action_samples_history[i], label="sample", color="lime", alpha=0.2)
+            plt.scatter(range(len(self.action_samples_history[i])), self.action_samples_history[i], label="sample", color="lime")
             plt.plot(self.action_means_history[i], label="mean", color="red")
             plt.title(f"Action {i} - Means and Samples")
             plt.xlabel("Step")
@@ -163,6 +165,16 @@ class Logger:
         plt.legend(loc='upper left')
         plt.grid(True)
 
+        # フェロモン平均値の履歴のプロット
+        plt.subplot(n_rows, n_cols, n_cols * n_rows)  # 新しいサブプロット位置を設定
+        plt.plot(self.pheromone_average_history, label="Pheromone Average Value", color="green")
+        plt.title("Pheromone Average Value")
+        plt.xlabel("Step")
+        plt.ylabel("Pheromone Average Value")
+        plt.legend(loc='upper left')
+        plt.grid(True)
+
+
         # グラフを表示
         plt.tight_layout()
 
@@ -172,63 +184,6 @@ class Logger:
         plt.close()
 
 
-    # def save_csv(self):
-    #     filename = f"{self.dir_name}/data_history.csv"
-
-
-    #     max_length = max(
-    #         len(self.reward_history),
-    #         # len(self.compute_moving_average(self.reward_history, window_size=10)),
-    #         len(self.losses_actors),
-    #         len(self.losses_critics),
-    #         len(self.advantage_mean_history),
-    #         len(self.advantage_variance_history),
-    #         len(self.entropy_mean_history),
-    #         len(self.lr_actor_history),
-    #         len(self.lr_critic_history),
-    #     )
-        
-    #     # 各リストの長さをmax_lengthに合わせる
-    #     reward_history = self.reward_history + [None] * (max_length - len(self.reward_history))
-    #     losses_actors = self.losses_actors + [None] * (max_length - len(self.losses_actors))
-    #     losses_critics = self.losses_critics + [None] * (max_length - len(self.losses_critics))
-    #     advantage_mean_history = self.advantage_mean_history + [None] * (max_length - len(self.advantage_mean_history))
-    #     advantage_variance_history = self.advantage_variance_history + [None] * (max_length - len(self.advantage_variance_history))        
-    #     lr_actor_history = self.lr_actor_history + [None] * (max_length - len(self.lr_actor_history))
-    #     lr_critic_history = self.lr_critic_history + [None] * (max_length - len(self.lr_critic_history))
-    #     entropy_mean_history = self.entropy_mean_history + [None] * (max_length - len(self.entropy_mean_history))
-
-    #     # self.reward_history をデータフレームに変換
-    #     new_df = pd.DataFrame({
-    #         "Episode Rewards": reward_history,
-    #         "Actor Loss": losses_actors,
-    #         "Critic Loss": losses_critics,
-    #         "Average Advantage": advantage_mean_history,
-    #         "Variance of Advantage": advantage_variance_history,
-    #         "Entropy": entropy_mean_history,
-    #         "Actor Learning Rate": lr_actor_history,
-    #         "Critic Learning Rate": lr_critic_history,
-    #         })
-
-    #     # 既存の CSV ファイルがある場合は読み込む
-    #     if os.path.exists(filename):
-    #         existing_df = pd.read_csv(filename)
-
-    #         # 既存のデータと新しいデータを比較
-    #         if not existing_df.equals(new_df):
-    #             # 新しいデータのみを抽出
-    #             new_data = new_df.iloc[len(existing_df):]
-
-    #             # 既存のデータと新しいデータを結合
-    #             updated_df = pd.concat([existing_df, new_data])
-    #         else:
-    #             updated_df = existing_df
-    #     else:
-    #         updated_df = new_df
-
-    #     # CSV ファイルに保存
-    #     updated_df.to_csv(filename, index=False)
-    #     print(f"Data saved to {filename}")
     def save_csv(self):
         # 異なるデータカテゴリのファイル名を定義
         rewards_filename = f"{self.dir_name}/training_history/episode_rewards.csv"
@@ -367,3 +322,5 @@ class Logger:
     def clear_action_logs(self):
         self.action_means_history = [[] for _ in range(len(self.action_means_history))]
         self.action_samples_history = [[] for _ in range(len(self.action_samples_history))]
+        self.angle_to_goal_history = []
+        self.pheromone_average_history = []

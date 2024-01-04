@@ -77,6 +77,7 @@ def main():
         # 1エピソードを格納するリスト
         total_reward = 0
         total_steps = 0
+        logger_action_means = []
 
         while not done:
             total_steps += 1
@@ -85,18 +86,29 @@ def main():
                 action_mean, _ = agent.actor(state)
             action = action_mean.cpu().numpy()
 
-            next_state, reward, terminated, _ , info = env.step([action[0]*0.2,action[1]])
+            next_state, reward, terminated, _ , info = env.step([(action[0]+1.0)*0.1,action[1]])
 
             total_reward += reward
             if terminated:
                 done = 1
 
             state = next_state
+            logger_action_means.append(action_mean.cpu().numpy())
+            agent.logger.angle_to_goal_history.append(info["angle_to_goal"])
+            agent.logger.pheromone_average_history.append(info["pheromone_mean"])
+
 
         task_time = info["task_time"]
         done_category = info["done_category"] # 0: reach goal, 1: collision, 2: time up
         string_done_category = "reach goal" if done_category == 0 else "collision" if done_category == 1 else "time up"
 
+        action_T_means = np.array(logger_action_means).T.tolist()
+        for i in range(agent.n_actions):
+            for action_mean in action_T_means[i]:
+                agent.logger.action_means_history[i].append(action_mean)
+
+        agent.logger.plot_action_graph(run, agent.n_actions)
+        agent.logger.clear_action_logs()
         print("total steps: {}, task time: {:.3f}, total reward: {:.3f}, done category: {}".format(total_steps, task_time, total_reward, string_done_category))                
         # 結果をリストに追加
         results.append([run, total_steps, task_time, total_reward, done_category])

@@ -52,8 +52,8 @@ def main():
 
     agent.save_setting_config()
     # 途中から始める場合、以下のコメントアウトを外す
-    # agent.load_weights("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2023-12-26_22-37-03/1050_weights.pth")
-    # agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2023-12-26_22-37-03/training_history")
+    # agent.load_weights("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-02_04-24-27/750_weights.pth")
+    # agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-02_04-24-27/training_history")
 
     signal.signal(signal.SIGINT, exit)
     for iteration in range(total_iterations):
@@ -71,7 +71,7 @@ def main():
         for result in results: 
             if result[0] is None:
                 continue
-            episode_data, rewards, baseline_rewards, entoripies, action_means, action_stds, action_samples, angle_to_goals = result
+            episode_data, rewards, baseline_rewards, entoripies, action_means, action_stds, action_samples, angle_to_goals, pheromone_average_value = result
             if len(action_means) != 0:
                 action_T_means = np.array(action_means).T.tolist()
                 action_T_stds = np.array(action_stds).T.tolist()
@@ -86,6 +86,8 @@ def main():
                         agent.logger.action_samples_history[i].append(action_sample)
                 for angle_to_goal in angle_to_goals:
                     agent.logger.angle_to_goal_history.append(angle_to_goal)
+                for pheromone_average in pheromone_average_value:
+                    agent.logger.pheromone_average_history.append(pheromone_average)
             for episode in episode_data:
                 agent.trajectory_buffer.add_trajectory(episode)
             for reward in rewards:
@@ -123,6 +125,7 @@ def main():
 
         if iteration % plot_interval == 0:
             agent.logger.plot_graph(iteration, agent.n_actions)
+            agent.logger.plot_action_graph(iteration, agent.n_actions)
         # Agentのログをクリア
         agent.logger.clear_action_logs()
 

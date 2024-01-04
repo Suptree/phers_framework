@@ -122,6 +122,7 @@ class PPOAgent:
         logger_action_stds = []
         logger_actions = []
         logger_angle_to_goal = []
+        logger_pheromone_average_value = []
         collect_action_flag = True
         try:
             while True:
@@ -161,6 +162,7 @@ class PPOAgent:
                         logger_action_stds.append(logger_action_std)
                         logger_actions.append(logger_action)
                         logger_angle_to_goal.append(info["angle_to_goal"])
+                        logger_pheromone_average_value.append(info["pheromone_mean"])
                         
 
 
@@ -175,12 +177,12 @@ class PPOAgent:
             # print(f"Finishing : Process {id} finished collecting data")
             env.shutdown()
             print(f"Process {id} is Finished")
-            return (trajectory, logger_reward, logger_baseline_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions, logger_angle_to_goal)
+            return (trajectory, logger_reward, logger_baseline_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions, logger_angle_to_goal, logger_pheromone_average_value)
         except Exception as e:
             print(f"ERROR : Process {id} is Finished")
             print(e)
             env.shutdown()
-            return (None, None, None, None, None, None, None, None)
+            return (None, None, None, None, None, None, None, None, None)
         
     def compute_advantages_and_add_to_buffer(self):
         for trajectory in self.trajectory_buffer.buffer:
