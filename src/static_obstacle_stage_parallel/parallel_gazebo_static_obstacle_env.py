@@ -244,7 +244,7 @@ class GazeboEnvironment:
         distance_to_goal =  math.sqrt((self.robot_position.x - self.goal_pos_x)**2
                              + (self.robot_position.y - self.goal_pos_y)**2)
         
-        if distance_to_goal <= (0.04408 + 0.02):
+        if distance_to_goal <= (0.02):
             return True
 
         return False
