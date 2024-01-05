@@ -33,9 +33,14 @@ class PheromoneFramework:
 
         # 経過時間
         self.start_time = rospy.get_time()
-
+        # 最後に受け取った model_states のデータを保存する属性
+        self.latest_model_states = None
+        
         # オブジェクトの周りにフェロモンを配置
         # Refactor repetitive code
+        # 障害物の名前リスト
+
+
         self.obstacles = [
             (self.origin_x + 0.0,    self.origin_y + 0.4),
             (self.origin_x + 0.0,    self.origin_y + (-0.4)),
@@ -137,7 +142,9 @@ class PheromoneFramework:
         return x, y
     
     def pheromoneCallback(self, model_status):
+
         try:
+            self.latest_model_states = model_status
             # Reading from arguments
             robot_index = model_status.name.index(self.robot_name)
             # print(model_status.pose)
@@ -170,12 +177,27 @@ class PheromoneFramework:
             self.publish_pheromone.publish(pheromone_value)
 
     def resetPheromoneMap(self, msg):
+        if self.latest_model_states:
+            try:
+                obstacle_names = [f"obs_{self.id}1", f"obs_{self.id}2", f"obs_{self.id}3", f"obs_{self.id}4"]
+                self.obstacles = []  # 障害物リストをリセット
+                for obs_name in obstacle_names:
+                    if obs_name in self.latest_model_states.name:
+                        obs_index = self.latest_model_states.name.index(obs_name)
+                        obs_pose = self.latest_model_states.pose[obs_index]
+                        obs_pos = obs_pose.position
+                        self.obstacles.append((obs_pos.x, obs_pos.y))
+
+            except Exception as e:
+                rospy.logerr("Error updating obstacles in resetPheromoneMap: {}".format(e))
+
         self.pheromone.reset()
         # 経過時間
         self.start_time = rospy.get_time()
 
         # オブジェクトの周りにフェロモンを配置
         # Refactor repetitive code
+        print("self.obstacles: ", self.obstacles)
         for obs in self.obstacles:
             x_index, y_index = self.posToIndex(obs[0], obs[1])
             self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.30)

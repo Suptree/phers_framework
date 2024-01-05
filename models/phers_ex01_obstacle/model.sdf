@@ -3,7 +3,8 @@
   <model name='phers_ex01_obstacle'>
     <link name='link'>
       <inertial>
-        <mass>0.00015641</mass>
+        <!-- <mass>0.00015641</mass> -->
+        <mass>1.0</mass>
         <inertia>
           <ixx>8.9e-07</ixx>
           <ixy>0</ixy>
@@ -100,7 +101,7 @@
         </surface>
       </collision>
     </link>
-    <static>1</static>
+    <static>0</static>
     <allow_auto_disable>1</allow_auto_disable>
   </model>
 </sdf>
