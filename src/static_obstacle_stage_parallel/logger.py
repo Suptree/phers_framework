@@ -144,6 +144,7 @@ class Logger:
             plt.title(f"Action {i} - Means and Samples")
             plt.xlabel("Step")
             plt.ylabel("Action Values")
+            plt.ylim(-1.1, 1.1)
             plt.grid(True)
             plt.legend(loc='upper left')
 
@@ -163,6 +164,7 @@ class Logger:
         plt.xlabel("Step")
         plt.ylabel("Angle (degrees)")
         plt.legend(loc='upper left')
+        plt.ylim(-200.0, 200.0)
         plt.grid(True)
 
         # フェロモン平均値の履歴のプロット
@@ -171,7 +173,9 @@ class Logger:
         plt.title("Pheromone Average Value")
         plt.xlabel("Step")
         plt.ylabel("Pheromone Average Value")
+        plt.ylim(-0.1, 1.1)
         plt.legend(loc='upper left')
+
         plt.grid(True)
 
 

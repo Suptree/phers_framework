@@ -197,7 +197,6 @@ class PheromoneFramework:
 
         # オブジェクトの周りにフェロモンを配置
         # Refactor repetitive code
-        print("self.obstacles: ", self.obstacles)
         for obs in self.obstacles:
             x_index, y_index = self.posToIndex(obs[0], obs[1])
             self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.30)

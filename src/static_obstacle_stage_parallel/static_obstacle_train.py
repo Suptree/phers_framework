@@ -44,16 +44,16 @@ def main():
                     gae_lambda=0.95, 
                     clip_epsilon=0.2, 
                     buffer_size=100000, 
-                    batch_size=512,
+                    batch_size=1024,
                     epoch=3,
-                    collect_step=256,
+                    collect_step=512,
                     entropy_coefficient=0.01, 
                     device=device)
 
     agent.save_setting_config()
     # 途中から始める場合、以下のコメントアウトを外す
-    # agent.load_weights("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-02_04-24-27/750_weights.pth")
-    # agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-02_04-24-27/training_history")
+    # agent.load_weights("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-08_02-44-09/350_weights.pth")
+    # agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-08_02-44-09/training_history")
 
     signal.signal(signal.SIGINT, exit)
     for iteration in range(total_iterations):
@@ -62,7 +62,7 @@ def main():
         share_memory_actor.share_memory()
         
         with mp.Pool(processes=num_env) as pool:
-            tasks = [(i, seed_value+i+iteration, share_memory_actor) for i in range(num_env)]
+            tasks = [(i, random.randint(0,10000000), share_memory_actor) for i in range(num_env)]
             results = pool.starmap(agent.data_collection, tasks)
             pool.close()
             pool.terminate()

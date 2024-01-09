@@ -26,8 +26,8 @@ class Actor(nn.Module):
         # print("self.fc2_weight: ", self.fc2.weight)
         # print("self.fc_liner_weight: ", self.fc_linear.weight)
         
-
-        self.log_std = nn.Parameter(torch.full((self.n_actions,),-2.5))
+        self.log_std = nn.Parameter(torch.full((self.n_actions,),0.0))
+        # self.log_std = nn.Parameter(torch.full((self.n_actions,),-2.5))
         # self.log_std = nn.Parameter(torch.tensor([-4.0, -2.5]))
 
         # ネットワークのアーキテクチャ情報を保存

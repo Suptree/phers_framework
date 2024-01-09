@@ -269,7 +269,8 @@ class GazeboEnvironment:
             random.seed(seed)
 
         # ゴールの初期位置をランダムに設定
-        goal_r = random.uniform(0.5, 1.5)
+        # goal_r = random.uniform(0.5, 1.5)
+        goal_r = 0.8
         goal_radius = 2.0 * math.pi * random.random()
 
         self.goal_pos_x = self.origin_x + goal_r * math.cos(goal_radius)
@@ -277,45 +278,41 @@ class GazeboEnvironment:
         # self.set_random_goal()
 
         # 静的障害物の位置をランダムに設定
-        self.obstacle = []
-        for i in range(4):
-            while True:
-                # 原点からの距離をランダムに設定
-                distance = random.uniform(0.3, 0.7)
-                # angle = random.uniform(0, 2 * math.pi)  # 角度をランダムに設定
-                angle = i * math.pi / 2.0  # 角度をランダムに設定
+        # self.obstacle = []
+        # for i in range(4):
+        #     while True:
+        #         # 原点からの距離をランダムに設定
+        #         distance = random.uniform(0.3, 0.7)
+        #         # angle = random.uniform(0, 2 * math.pi)  # 角度をランダムに設定
+        #         angle = i * math.pi / 2.0  # 角度をランダムに設定
 
-                obstacle_x = self.origin_x + distance * math.cos(angle)
-                obstacle_y = self.origin_y + distance * math.sin(angle)
+        #         obstacle_x = self.origin_x + distance * math.cos(angle)
+        #         obstacle_y = self.origin_y + distance * math.sin(angle)
 
-                # ゴールとの距離を計算
-                distance_to_goal = math.sqrt((obstacle_x - self.goal_pos_x) ** 2 + (obstacle_y - self.goal_pos_y) ** 2)
+        #         # ゴールとの距離を計算
+        #         distance_to_goal = math.sqrt((obstacle_x - self.goal_pos_x) ** 2 + (obstacle_y - self.goal_pos_y) ** 2)
 
-                # ゴールとの距離が0.1以上ならば配置
-                if distance_to_goal >= 0.1:
-                    self.obstacle.append((obstacle_x, obstacle_y))
-                    break        # ロボット停止命令
+        #         # ゴールとの距離が0.1以上ならば配置
+        #         if distance_to_goal >= 0.1:
+        #             self.obstacle.append((obstacle_x, obstacle_y))
+        #             break        # ロボット停止命令
 
-        self.reposition_obstacles()
         twist = Twist()
         twist.linear = Vector3(x=0, y=0, z=0)
         twist.angular = Vector3(x=0, y=0, z=0)
         self.cmd_vel_pub.publish(twist)
         rospy.sleep(1.0)
-
         # マーカーをリセット
         self.delete_all_markers()
         # 新しいゴールマーカーを設定
         self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
         self.set_origin_marker()
-        self.set_object_marker()
-
-        # フェロモンマップをリセット
-        self.reset_pheromone_pub.publish(EmptyMsg())
 
         # ロボットの位置をリセット
         before = self.robot_position
         self.set_robot()
+
+
         # ロボットの色をリセット
         self.robot_color = "CYEAN"
         color = ColorRGBA()
@@ -326,7 +323,15 @@ class GazeboEnvironment:
         self.pub_led.publish(color)
 
         # # ロボットの位置がリセットされるまで待機
-        rospy.sleep(3.0)
+        rospy.sleep(1.0)
+        self.set_obstacles()        
+        # self.reposition_obstacles()
+        rospy.sleep(1.0)
+        self.set_object_marker()
+
+        # フェロモンマップをリセット
+        self.reset_pheromone_pub.publish(EmptyMsg())
+        rospy.sleep(2.0)
         
         # フラグのリセット
         self.is_collided = False
@@ -566,6 +571,39 @@ class GazeboEnvironment:
             state_msg.pose.position.x = obstacle_x
             state_msg.pose.position.y = obstacle_y
             state_msg.pose.position.z = 0.09  # 既定の高さ
+            state_msg.pose.orientation.x = 0.0
+            state_msg.pose.orientation.y = 0.0
+            state_msg.pose.orientation.z = 0.0
+            state_msg.pose.orientation.w = 0.0
+            state_msg.twist.linear.x = 0.0
+            state_msg.twist.linear.y = 0.0
+            state_msg.twist.linear.z = 0.0
+            state_msg.twist.angular.x = 0.0
+            state_msg.twist.angular.y = 0.0
+            state_msg.twist.angular.z = 0.0
+
+            # Gazeboに位置を更新するためのリクエストを送信
+            try:
+                self.set_model_state(state_msg)
+            except rospy.ServiceException as e:
+                print(f"Model state update failed for obs_{self.id}{i+1}: {e}")
+
+    def set_obstacles(self):
+        # 静的障害物の位置
+        self.obstacle = [
+            (self.origin_x + 0.0,    self.origin_y + 0.4),
+            (self.origin_x + 0.0,    self.origin_y + (-0.4)),
+            (self.origin_x + 0.4,    self.origin_y + 0.0),
+            (self.origin_x + (-0.4), self.origin_y + 0.0)
+        ]
+        # Gazeboに障害物の位置を設定
+        for i, obs in enumerate(self.obstacle):
+            state_msg = ModelState()
+            state_msg.model_name = f"obs_{self.id}{i+1}"
+
+            state_msg.pose.position.x = obs[0]
+            state_msg.pose.position.y = obs[1]
+            state_msg.pose.position.z = 0.09
             state_msg.pose.orientation.x = 0.0
             state_msg.pose.orientation.y = 0.0
             state_msg.pose.orientation.z = 0.0
