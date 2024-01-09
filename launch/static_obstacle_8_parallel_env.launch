@@ -6,10 +6,10 @@
 	<node name="spawn_urdf_arena_0" pkg="gazebo_ros" type="spawn_model" args="-urdf -model arena_0 -x 0.0 -y -0.0 -z -0.0 -file $(find phers_framework)/models/arena_1/arena.urdf" />
 	
 	<!-- 障害物 -->
-	<node name="obs_01" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_01 -x 0.4000 -y 0.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<!-- <node name="obs_01" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_01 -x 0.4000 -y 0.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_02" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_02 -x -0.4000 -y 0.0 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_03" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_03 -x 0.0000 -y 0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
-	<node name="obs_04" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_04 -x 0.0000 -y -0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_04" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_04 -x 0.0000 -y -0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" /> -->
 	<!-- ゴール -->
 	<!-- <node name="goal_0" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_0 -x 0.4000 -y 0.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<!-- ロボット -->
@@ -24,10 +24,10 @@
 	<!-- 2つ目の環境 -->
 	<node name="spawn_urdf_arena_1" pkg="gazebo_ros" type="spawn_model" args="-urdf -model arena_1 -x 20.0 -y -0.0 -z -0.0 -file $(find phers_framework)/models/arena_1/arena.urdf" />
 	<!-- 障害物 -->
-	<node name="obs_11" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_11 -x 20.4000 -y 0.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<!-- <node name="obs_11" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_11 -x 20.4000 -y 0.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_12" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_12 -x 19.6000 -y 0.0 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_13" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_13 -x 20.0000 -y 0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
-	<node name="obs_14" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_14 -x 20.0000 -y -0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_14" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_14 -x 20.0000 -y -0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" /> -->
 	<!-- ゴール -->
 	<!-- <node name="goal_1" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_1 -x 20.4000 -y 0.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 
@@ -42,10 +42,10 @@
     <!-- 3つ目の環境 -->
 	<node name="spawn_urdf_arena_2" pkg="gazebo_ros" type="spawn_model" args="-urdf -model arena_2 -x 40.0 -y -0.0 -z -0.0 -file $(find phers_framework)/models/arena_1/arena.urdf" />
 	<!-- 障害物 -->
-	<node name="obs_21" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_21 -x 40.4000 -y 0.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<!-- <node name="obs_21" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_21 -x 40.4000 -y 0.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_22" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_22 -x 39.6000 -y 0.0 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_23" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_23 -x 40.0000 -y 0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
-	<node name="obs_24" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_24 -x 40.0000 -y -0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_24" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_24 -x 40.0000 -y -0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" /> -->
 	<!-- ゴール -->
 	<!-- <node name="goal_2" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_2 -x 40.4000 -y 0.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<group ns ="hero_2">
@@ -59,10 +59,10 @@
      <!-- 4つ目の環境 -->
 	<node name="spawn_urdf_arena_3" pkg="gazebo_ros" type="spawn_model" args="-urdf -model arena_3 -x 60.0 -y -0.0 -z -0.0 -file $(find phers_framework)/models/arena_1/arena.urdf" />
 	<!-- 障害物 -->
-	<node name="obs_31" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_31 -x 60.4000 -y 0.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<!-- <node name="obs_31" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_31 -x 60.4000 -y 0.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_32" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_32 -x 59.6000 -y 0.0 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_33" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_33 -x 60.0000 -y 0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
-	<node name="obs_34" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_34 -x 60.0000 -y -0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_34" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_34 -x 60.0000 -y -0.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" /> -->
 	<!-- ゴール -->
 	<!-- <node name="goal_3" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_3 -x 60.4000 -y 0.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<group ns ="hero_3">
@@ -76,10 +76,10 @@
 	<!-- 5つ目の環境 -->
 	<node name="spawn_urdf_arena_4" pkg="gazebo_ros" type="spawn_model" args="-urdf -model arena_4 -x 0.0 -y 20.0 -z -0.0 -file $(find phers_framework)/models/arena_1/arena.urdf" />
 	<!-- 障害物 -->
-	<node name="obs_41" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_41 -x 0.4000 -y 20.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<!-- <node name="obs_41" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_41 -x 0.4000 -y 20.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_42" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_42 -x -0.4000 -y 20.0 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_43" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_43 -x 0.0000 -y 20.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
-	<node name="obs_44" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_44 -x 0.0000 -y 19.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_44" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_44 -x 0.0000 -y 19.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" /> -->
 	<!-- ゴール -->
 	<!-- <node name="goal_4" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_4 -x 0.4000 -y 20.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<group ns ="hero_4">
@@ -93,10 +93,10 @@
 	<!-- 6つ目の環境 -->
 	<node name="spawn_urdf_arena_5" pkg="gazebo_ros" type="spawn_model" args="-urdf -model arena_5 -x 20.0 -y 20.0 -z -0.0 -file $(find phers_framework)/models/arena_1/arena.urdf" />
 	<!-- 障害物 -->
-	<node name="obs_51" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_51 -x 20.4000 -y 20.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<!-- <node name="obs_51" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_51 -x 20.4000 -y 20.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_52" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_52 -x 19.6000 -y 20.0 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_53" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_53 -x 20.0000 -y 20.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
-	<node name="obs_54" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_54 -x 20.0000 -y 19.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_54" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_54 -x 20.0000 -y 19.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" /> -->
 	<!-- ゴール -->
 	<!-- <node name="goal_5" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_5 -x 20.4000 -y 20.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<group ns ="hero_5">
@@ -110,10 +110,10 @@
 	<!-- 7つ目の環境 -->
 	<node name="spawn_urdf_arena_6" pkg="gazebo_ros" type="spawn_model" args="-urdf -model arena_6 -x 40.0 -y 20.0 -z -0.0 -file $(find phers_framework)/models/arena_1/arena.urdf" />
 	<!-- 障害物 -->
-	<node name="obs_61" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_61 -x 40.4000 -y 20.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<!-- <node name="obs_61" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_61 -x 40.4000 -y 20.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_62" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_62 -x 39.6000 -y 20.0 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_63" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_63 -x 40.0000 -y 20.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
-	<node name="obs_64" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_64 -x 40.0000 -y 19.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_64" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_64 -x 40.0000 -y 19.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" /> -->
 	<!-- ゴール -->
 	<!-- <node name="goal_6" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_6 -x 40.4000 -y 20.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<group ns ="hero_6">
@@ -127,10 +127,10 @@
 	<!-- 8つ目の環境 -->
 	<node name="spawn_urdf_arena_7" pkg="gazebo_ros" type="spawn_model" args="-urdf -model arena_7 -x 60.0 -y 20.0 -z -0.0 -file $(find phers_framework)/models/arena_1/arena.urdf" />
 	<!-- 障害物 -->
-	<node name="obs_71" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_71 -x 60.4000 -y 20.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<!-- <node name="obs_71" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_71 -x 60.4000 -y 20.0 -z 0.09  -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_72" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_72 -x 59.6000 -y 20.0 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
 	<node name="obs_73" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_73 -x 60.0000 -y 20.4000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
-	<node name="obs_74" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_74 -x 60.0000 -y 19.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" />
+	<node name="obs_74" pkg="gazebo_ros" type="spawn_model" args="-sdf -model obs_74 -x 60.0000 -y 19.6000 -z 0.09 -file $(find phers_framework)/models/phers_ex01_obstacle/model.sdf" /> -->
 	<!-- ゴール -->
 	<!-- <node name="goal_7" pkg="gazebo_ros" type="spawn_model" args="-sdf -model goal_7 -x 60.4000 -y 20.4000 -z 0.06 -file $(find phers_framework)/models/goal/model.sdf" /> -->
 	<group ns ="hero_7">

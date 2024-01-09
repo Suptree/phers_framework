@@ -5,11 +5,14 @@ import math
 from std_msgs.msg import ColorRGBA
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Empty as EmptyMsg
+from geometry_msgs.msg import Pose
 
 import rospy
 from gazebo_msgs.srv import SetModelState
 from gazebo_msgs.msg import ModelStates
 from gazebo_msgs.msg import ModelState
+from gazebo_msgs.srv import DeleteModel
+from gazebo_msgs.srv import SpawnModel
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Vector3
 from visualization_msgs.msg import Marker
@@ -47,6 +50,10 @@ class GazeboEnvironment:
             (self.origin_x + (-0.4), self.origin_y + 0.0)
         ]
 
+        # 障害物のSDFファイルのパス
+        obstacle_path = "/home/nishilab/catkin_ws/src/phers_framework/models/phers_ex01_obstacle/model.sdf"
+        self.obstacle_sdf = open(obstacle_path, "r").read()
+
 
         # Robotの状態
         self.robot_color = "CYEAN"
@@ -63,9 +70,15 @@ class GazeboEnvironment:
         # ロボットをコントロールするためのパブリッシャの設定
         self.cmd_vel_pub = rospy.Publisher(f'/{self.robot_name}/cmd_vel', Twist, queue_size=1)
 
-        # # Gazeboのモデルの状態を設定するためのサービスの設定
+        # # Gazeboのモデル(Robot)の状態を設定するためのサービスの設定
         rospy.wait_for_service('/gazebo/set_model_state')
         self.set_model_state = rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)
+
+        rospy.wait_for_service("/gazebo/delete_model")
+        self.delete_model_service = rospy.ServiceProxy("/gazebo/delete_model", DeleteModel)
+        rospy.wait_for_service("/gazebo/spawn_sdf_model")
+        self.spawn_model_service = rospy.ServiceProxy("/gazebo/spawn_sdf_model", SpawnModel)
+
 
         # Gazeboのモデルの状態を取得するためのサブスクライバの設定
         self.gazebo_model_state_sub = rospy.Subscriber(
@@ -112,8 +125,7 @@ class GazeboEnvironment:
         while self.last_time == rospy.Time.now():
             # print("waiting for update")
             rospy.sleep(0.01)
-        
-
+                    
         # ロボットに速度を設定
         v, w = action
         # vの値を0から0.2の範囲に収める
@@ -267,67 +279,49 @@ class GazeboEnvironment:
         rospy.sleep(0.01)
         if seed is not None:
             random.seed(seed)
-
-        # ゴールの初期位置をランダムに設定
-        # goal_r = random.uniform(0.5, 1.5)
-        goal_r = 0.8
-        goal_radius = 2.0 * math.pi * random.random()
-
-        self.goal_pos_x = self.origin_x + goal_r * math.cos(goal_radius)
-        self.goal_pos_y = self.origin_y + goal_r * math.sin(goal_radius)
-        # self.set_random_goal()
-
-        # 静的障害物の位置をランダムに設定
-        # self.obstacle = []
-        # for i in range(4):
-        #     while True:
-        #         # 原点からの距離をランダムに設定
-        #         distance = random.uniform(0.3, 0.7)
-        #         # angle = random.uniform(0, 2 * math.pi)  # 角度をランダムに設定
-        #         angle = i * math.pi / 2.0  # 角度をランダムに設定
-
-        #         obstacle_x = self.origin_x + distance * math.cos(angle)
-        #         obstacle_y = self.origin_y + distance * math.sin(angle)
-
-        #         # ゴールとの距離を計算
-        #         distance_to_goal = math.sqrt((obstacle_x - self.goal_pos_x) ** 2 + (obstacle_y - self.goal_pos_y) ** 2)
-
-        #         # ゴールとの距離が0.1以上ならば配置
-        #         if distance_to_goal >= 0.1:
-        #             self.obstacle.append((obstacle_x, obstacle_y))
-        #             break        # ロボット停止命令
-
+        
+        # ロボットの速度を停止
         twist = Twist()
         twist.linear = Vector3(x=0, y=0, z=0)
         twist.angular = Vector3(x=0, y=0, z=0)
-        self.cmd_vel_pub.publish(twist)
+        try:
+            self.cmd_vel_pub.publish(twist)
+        except rospy.ServiceException as e:
+            print("Spawn URDF service call failed: {0}".format(e))
         rospy.sleep(1.0)
-        # マーカーをリセット
-        self.delete_all_markers()
-        # 新しいゴールマーカーを設定
-        self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
+
+        # 原点マーカーを削除
         self.set_origin_marker()
 
-        # ロボットの位置をリセット
-        before = self.robot_position
+        # 静的障害物を削除
+        self.delete_static_obstacle()
+
+        # マーカーを削除
+        self.delete_all_markers()
+
+        # ロボットの速度停止、位置と色をリセット
         self.set_robot()
 
-
-        # ロボットの色をリセット
-        self.robot_color = "CYEAN"
-        color = ColorRGBA()
-        color.r = 0
-        color.g = 160
-        color.b = 233
-        color.a = 255
-        self.pub_led.publish(color)
-
-        # # ロボットの位置がリセットされるまで待機
+        ## ロボットの位置がリセットされるまで待機
         rospy.sleep(1.0)
-        self.set_obstacles()        
-        # self.reposition_obstacles()
+
+        # ゴールの初期位置を設定
+        self.set_random_goal()
+
+        # 新しいゴールマーカーを設定
+        self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
+
+        # 静的障害物の位置を設定
+        self.set_static_obstacles()
+        # self.set_distance_random_static_obstacle()
+        # 静的障害物を追加
+        self.add_static_obstacle()
+
+        # 静的障害物が再配置されるまで待機
         rospy.sleep(1.0)
-        self.set_object_marker()
+
+        # 静的障害物のマーカーを追加
+        self.set_obstacle_marker()
 
         # フェロモンマップをリセット
         self.reset_pheromone_pub.publish(EmptyMsg())
@@ -362,6 +356,14 @@ class GazeboEnvironment:
         return self.state
     
     def set_random_goal(self):
+        # ゴールの位置をランダムに設定
+        goal_r = 0.8
+        goal_radius = 2.0 * math.pi * random.random()
+
+        self.goal_pos_x = self.origin_x + goal_r * math.cos(goal_radius)
+        self.goal_pos_y = self.origin_y + goal_r * math.sin(goal_radius)
+    
+    def set_range_random_goal(self):
         goal_r = 0.8
         # 0度、90度、180度、270度のいずれかに±10度の範囲でランダムに選ぶ
         base_angles = [0, math.pi / 2, math.pi, 3 * math.pi / 2]  # 基本の角度（ラジアン）
@@ -372,7 +374,30 @@ class GazeboEnvironment:
 
         self.goal_pos_x = self.origin_x + goal_r * math.cos(goal_angle)
         self.goal_pos_y = self.origin_y + goal_r * math.sin(goal_angle)
+    
+    def set_uniform_distance_random_goal(self):
+        # ゴールの位置をランダムに設定
+        goal_r = random.uniform(0.5, 1.5)
+        goal_radius = 2.0 * math.pi * random.random()
+
+        self.goal_pos_x = self.origin_x + goal_r * math.cos(goal_radius)
+        self.goal_pos_y = self.origin_y + goal_r * math.sin(goal_radius)
+
+    def set_uniform_distance_range_random_goal(self):
+        goal_r = random.uniform(0.5, 1.5)
+        # 0度、90度、180度、270度のいずれかに±10度の範囲でランダムに選ぶ
+        base_angles = [0, math.pi / 2, math.pi, 3 * math.pi / 2]  # 基本の角度（ラジアン）
+        angle_offset = math.radians(10)  # ±10度の範囲
+
+        # 基本の角度からランダムなオフセットを加える
+        goal_angle = random.choice(base_angles) + random.uniform(-angle_offset, angle_offset)
+
+        self.goal_pos_x = self.origin_x + goal_r * math.cos(goal_angle)
+        self.goal_pos_y = self.origin_y + goal_r * math.sin(goal_angle)
+    
+
     def set_robot(self):
+        """ ロボットの位置を初期化 """
 
         state_msg = ModelState()
         state_msg.model_name = self.robot_name
@@ -398,80 +423,89 @@ class GazeboEnvironment:
         except rospy.ServiceException as e:
             print("Spawn URDF service call failed: {0}".format(e))
 
+        # ロボットの色をリセット
+        self.robot_color = "CYEAN"
+        color = ColorRGBA()
+        color.r = 0
+        color.g = 160
+        color.b = 233
+        color.a = 255
+        try:
+            self.pub_led.publish(color)
+        except rospy.ServiceException as e:
+            print("Spawn URDF service call failed: {0}".format(e))
 
-    def set_goal_marker(self, x, y):
-        """
-        Set a goal marker in the Gazebo world and Rviz.
-        """
-        # Rviz
-        marker = Marker()
-        marker.header.frame_id = "world"
-        marker.header.stamp = rospy.Time.now()
-        
-        marker.ns = "goal"
-        marker.id = self.id * 1000 + 0
-        marker.type = Marker.CYLINDER
-        marker.action = Marker.ADD
 
-        marker.pose.position.x = x
-        marker.pose.position.y = y
-        marker.pose.position.z = 0
-        marker.pose.orientation.x = 0.0
-        marker.pose.orientation.y = 0.0
-        marker.pose.orientation.z = 0.0
-        marker.pose.orientation.w = 1.0
 
-        marker.scale.x = 0.04
-        marker.scale.y = 0.04
-        marker.scale.z = 0.1
+    def add_static_obstacle(self):
+        """ 静的障害物を追加 """
+        for i, obs in enumerate(self.obstacle):
+            # 障害物の名前
+            obstacle_name = f"obs_{self.id}{i+1}"
+            # 障害物の初期位置
+            initial_pose = Pose()
+            initial_pose.position.x = obs[0]
+            initial_pose.position.y = obs[1]
+            initial_pose.position.z = 0.09
+            # 障害物の追加
+            try:
+                self.spawn_model_service(obstacle_name, self.obstacle_sdf, obstacle_name, initial_pose, "world")
+            except rospy.ServiceException as e:
+                print("Spawn URDF service call failed: {0}".format(e))
+    
+    def delete_static_obstacle(self):
+        """ 静的障害物を削除 """
+        for i in range(4):
+            # 障害物の名前
+            obstacle_name = f"obs_{self.id}{i+1}"
+            # 障害物の削除
+            try:
+                self.delete_model_service(obstacle_name)
+            except rospy.ServiceException as e:
+                print("Spawn URDF service call failed: {0}".format(e))
 
-        marker.color.r = 1.0
-        marker.color.g = 0.0
-        marker.color.b = 0.0
-        marker.color.a = 1.0
-        self.marker_pub.publish(marker)
+    def set_static_obstacles(self):
+        # 静的障害物の位置
+        self.obstacle = [
+            (self.origin_x + 0.0,    self.origin_y + 0.4),
+            (self.origin_x + 0.0,    self.origin_y + (-0.4)),
+            (self.origin_x + 0.4,    self.origin_y + 0.0),
+            (self.origin_x + (-0.4), self.origin_y + 0.0)
+        ]
 
-    def set_object_marker(self):
-        i = 0
-        for obs in self.obstacle:
-            i = i +1
-            marker = Marker()
-            marker.header.frame_id = "world"
-            marker.header.stamp = rospy.Time.now()
-        
-            marker.ns = "obs"
-            marker.id = self.id * 1000 + 1 + i
-            marker.type = Marker.CYLINDER
-            marker.action = Marker.ADD
+    def set_distance_random_static_obstacle(self):
+        """ 静的障害物の位置をランダムに設定 """
+        # 静的障害物の位置をランダムに設定
+        self.obstacle = []
+        for i in range(4):
+            while True:
+                # 原点からの距離をランダムに設定
+                distance = random.uniform(0.4, 0.8)
+                # angle = random.uniform(0, 2 * math.pi)  # 角度をランダムに設定
+                angle = i * math.pi / 2.0  # 角度をランダムに設定
 
-            marker.pose.position.x = obs[0]
-            marker.pose.position.y = obs[1]
-            marker.pose.position.z = 0.02
-            marker.pose.orientation.x = 0.0
-            marker.pose.orientation.y = 0.0
-            marker.pose.orientation.z = 0.0
-            marker.pose.orientation.w = 1.0
+                obstacle_x = self.origin_x + distance * math.cos(angle)
+                obstacle_y = self.origin_y + distance * math.sin(angle)
 
-            marker.scale.x = 0.04
-            marker.scale.y = 0.04
-            marker.scale.z = 0.02
+                # ゴールとの距離を計算
+                distance_to_goal = math.sqrt((obstacle_x - self.goal_pos_x) ** 2 + (obstacle_y - self.goal_pos_y) ** 2)
 
-            marker.color.r = 0.0
-            marker.color.g = 0.0
-            marker.color.b = 1.0
-            marker.color.a = 1.0
-            self.marker_pub.publish(marker)
-
+                # ゴールとの距離が0.1以上ならば配置
+                if distance_to_goal >= 0.1:
+                    self.obstacle.append((obstacle_x, obstacle_y))
+                    break
         
     def shutdown(self):
         """
         Shuts down the ROS node.
         """
+
         twist = Twist()
         twist.linear = Vector3(x=0, y=0, z=0)
         twist.angular = Vector3(x=0, y=0, z=0)
         self.cmd_vel_pub.publish(twist)
 
+        self.delete_static_obstacle()
 
         rospy.signal_shutdown("Closing Gazebo environment")
         rospy.spin()
@@ -537,89 +571,68 @@ class GazeboEnvironment:
 
         self.marker_pub.publish(marker)
 
-    def reposition_obstacles(self):
-        # 障害物の名前リスト
-        obstacle_names = [f"obs_{self.id}1", f"obs_{self.id}2", f"obs_{self.id}3", f"obs_{self.id}4"]
+    def set_goal_marker(self, x, y):
+        """
+        Set a goal marker in the Gazebo world and Rviz.
+        """
+        # Rviz
+        marker = Marker()
+        marker.header.frame_id = "world"
+        marker.header.stamp = rospy.Time.now()
+        
+        marker.ns = "goal"
+        marker.id = self.id * 1000 + 0
+        marker.type = Marker.CYLINDER
+        marker.action = Marker.ADD
 
-        # 静的障害物の位置をランダムに設定
-        self.obstacle = []
-        for i in range(4):
-            while True:
-                # 原点からの距離をランダムに設定
-                distance = random.uniform(0.4, 0.8)
-                # angle = random.uniform(0, 2 * math.pi)  # 角度をランダムに設定
-                angle = i * math.pi / 2.0  # 角度をランダムに設定
+        marker.pose.position.x = x
+        marker.pose.position.y = y
+        marker.pose.position.z = 0
+        marker.pose.orientation.x = 0.0
+        marker.pose.orientation.y = 0.0
+        marker.pose.orientation.z = 0.0
+        marker.pose.orientation.w = 1.0
 
-                obstacle_x = self.origin_x + distance * math.cos(angle)
-                obstacle_y = self.origin_y + distance * math.sin(angle)
+        marker.scale.x = 0.04
+        marker.scale.y = 0.04
+        marker.scale.z = 0.1
 
-                # ゴールとの距離を計算
-                distance_to_goal = math.sqrt((obstacle_x - self.goal_pos_x) ** 2 + (obstacle_y - self.goal_pos_y) ** 2)
+        marker.color.r = 1.0
+        marker.color.g = 0.0
+        marker.color.b = 0.0
+        marker.color.a = 1.0
+        self.marker_pub.publish(marker)
 
-                # ゴールとの距離が0.1以上ならば配置
-                if distance_to_goal >= 0.1:
-                    self.obstacle.append((obstacle_x, obstacle_y))
-                    break        # ロボット停止命令
+    def set_obstacle_marker(self):
+        i = 0
+        for obs in self.obstacle:
+            i = i +1
+            marker = Marker()
+            marker.header.frame_id = "world"
+            marker.header.stamp = rospy.Time.now()
+        
+            marker.ns = "obs"
+            marker.id = self.id * 1000 + 1 + i
+            marker.type = Marker.CYLINDER
+            marker.action = Marker.ADD
 
+            marker.pose.position.x = obs[0]
+            marker.pose.position.y = obs[1]
+            marker.pose.position.z = 0.02
+            marker.pose.orientation.x = 0.0
+            marker.pose.orientation.y = 0.0
+            marker.pose.orientation.z = 0.0
+            marker.pose.orientation.w = 1.0
 
+            marker.scale.x = 0.04
+            marker.scale.y = 0.04
+            marker.scale.z = 0.02
 
-
-            # Gazeboにおける障害物の新しい位置を設定
-            state_msg = ModelState()
-            state_msg.model_name = f"obs_{self.id}{i+1}"
-
-            state_msg.pose.position.x = obstacle_x
-            state_msg.pose.position.y = obstacle_y
-            state_msg.pose.position.z = 0.09  # 既定の高さ
-            state_msg.pose.orientation.x = 0.0
-            state_msg.pose.orientation.y = 0.0
-            state_msg.pose.orientation.z = 0.0
-            state_msg.pose.orientation.w = 0.0
-            state_msg.twist.linear.x = 0.0
-            state_msg.twist.linear.y = 0.0
-            state_msg.twist.linear.z = 0.0
-            state_msg.twist.angular.x = 0.0
-            state_msg.twist.angular.y = 0.0
-            state_msg.twist.angular.z = 0.0
-
-            # Gazeboに位置を更新するためのリクエストを送信
-            try:
-                self.set_model_state(state_msg)
-            except rospy.ServiceException as e:
-                print(f"Model state update failed for obs_{self.id}{i+1}: {e}")
-
-    def set_obstacles(self):
-        # 静的障害物の位置
-        self.obstacle = [
-            (self.origin_x + 0.0,    self.origin_y + 0.4),
-            (self.origin_x + 0.0,    self.origin_y + (-0.4)),
-            (self.origin_x + 0.4,    self.origin_y + 0.0),
-            (self.origin_x + (-0.4), self.origin_y + 0.0)
-        ]
-        # Gazeboに障害物の位置を設定
-        for i, obs in enumerate(self.obstacle):
-            state_msg = ModelState()
-            state_msg.model_name = f"obs_{self.id}{i+1}"
-
-            state_msg.pose.position.x = obs[0]
-            state_msg.pose.position.y = obs[1]
-            state_msg.pose.position.z = 0.09
-            state_msg.pose.orientation.x = 0.0
-            state_msg.pose.orientation.y = 0.0
-            state_msg.pose.orientation.z = 0.0
-            state_msg.pose.orientation.w = 0.0
-            state_msg.twist.linear.x = 0.0
-            state_msg.twist.linear.y = 0.0
-            state_msg.twist.linear.z = 0.0
-            state_msg.twist.angular.x = 0.0
-            state_msg.twist.angular.y = 0.0
-            state_msg.twist.angular.z = 0.0
-
-            # Gazeboに位置を更新するためのリクエストを送信
-            try:
-                self.set_model_state(state_msg)
-            except rospy.ServiceException as e:
-                print(f"Model state update failed for obs_{self.id}{i+1}: {e}")
+            marker.color.r = 0.0
+            marker.color.g = 0.0
+            marker.color.b = 1.0
+            marker.color.a = 1.0
+            self.marker_pub.publish(marker)
 
     def delete_all_markers(self):
         # すべてのマーカーを削除するためのマーカーメッセージを作成

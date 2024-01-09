@@ -25,7 +25,7 @@ def main():
     # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     device = torch.device("cpu")
 
-    total_iterations = 5000
+    total_iterations = 10000
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 50  # 100イテレーションごとにモデルを保存
     num_env = 8
@@ -62,7 +62,7 @@ def main():
         share_memory_actor.share_memory()
         
         with mp.Pool(processes=num_env) as pool:
-            tasks = [(i, random.randint(0,10000000), share_memory_actor) for i in range(num_env)]
+            tasks = [(i, iteration*num_env + i, share_memory_actor) for i in range(num_env)]
             results = pool.starmap(agent.data_collection, tasks)
             pool.close()
             pool.terminate()
