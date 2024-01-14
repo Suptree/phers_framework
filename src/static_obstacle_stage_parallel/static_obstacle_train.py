@@ -27,7 +27,7 @@ def main():
 
     total_iterations = 10000
     plot_interval = 10  # 10イテレーションごとにグラフを保存
-    save_model_interval = 50  # 100イテレーションごとにモデルを保存
+    save_model_interval = 10  # 100イテレーションごとにモデルを保存
     num_env = 8
     seed_value = 1023
         
@@ -44,19 +44,20 @@ def main():
                     gae_lambda=0.95, 
                     clip_epsilon=0.2, 
                     buffer_size=100000, 
-                    batch_size=1024,
+                    batch_size=512,
                     epoch=3,
-                    collect_step=512,
+                    collect_step=256,
                     entropy_coefficient=0.01, 
                     device=device)
 
     agent.save_setting_config()
     # 途中から始める場合、以下のコメントアウトを外す
-    # agent.load_weights("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-08_02-44-09/350_weights.pth")
-    # agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-08_02-44-09/training_history")
+    # agent.load_weights("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-14_04-26-15/180_weights.pth")
+    # agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-15_00-42-41/training_history")
 
     signal.signal(signal.SIGINT, exit)
     for iteration in range(total_iterations):
+        
         print("+++++++++++++++++++  iteration: {}++++++++++++++".format(iteration))
         share_memory_actor = agent.create_actor_copy()
         share_memory_actor.share_memory()
@@ -71,7 +72,7 @@ def main():
         for result in results: 
             if result[0] is None:
                 continue
-            episode_data, rewards, baseline_rewards, entoripies, action_means, action_stds, action_samples, angle_to_goals, pheromone_average_value = result
+            episode_data, rewards, baseline_rewards, entoripies, action_means, action_stds, action_samples, angle_to_goals, pheromone_average_value, pheromone_left_value, pheromone_right_value, step_counts = result
             if len(action_means) != 0:
                 action_T_means = np.array(action_means).T.tolist()
                 action_T_stds = np.array(action_stds).T.tolist()
@@ -88,6 +89,10 @@ def main():
                     agent.logger.angle_to_goal_history.append(angle_to_goal)
                 for pheromone_average in pheromone_average_value:
                     agent.logger.pheromone_average_history.append(pheromone_average)
+                for pheromone_left in pheromone_left_value:
+                    agent.logger.pheromone_left_history.append(pheromone_left)
+                for pheromone_right in pheromone_right_value:
+                    agent.logger.pheromone_right_history.append(pheromone_right)
             for episode in episode_data:
                 agent.trajectory_buffer.add_trajectory(episode)
             for reward in rewards:
@@ -96,6 +101,8 @@ def main():
                 agent.logger.baseline_reward_history.append(baseline_reward)
             for entropy in entoripies:
                 agent.logger.entropy_history.append(entropy)
+            for step_count in step_counts:
+                agent.logger.step_count_history.append(step_count)
             # print("action_means", action_means[0])
 
         # アドバンテージの計算

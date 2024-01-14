@@ -38,7 +38,7 @@ def main():
     plot_interval = 10  # 10イテレーションごとにグラフを保存
     save_model_interval = 100  # 100イテレーションごとにモデルを保存
     num_env = 16
-    seed_value = 1020
+    seed_value = 1023
     # 実験結果を格納するリスト
     results = []
     set_seeds(seed_value)
@@ -96,6 +96,8 @@ def main():
             logger_action_means.append(action_mean.cpu().numpy())
             agent.logger.angle_to_goal_history.append(info["angle_to_goal"])
             agent.logger.pheromone_average_history.append(info["pheromone_mean"])
+            agent.logger.pheromone_left_history.append(info["pheromone_left_value"])
+            agent.logger.pheromone_right_history.append(info["pheromone_right_value"])
 
 
         task_time = info["task_time"]

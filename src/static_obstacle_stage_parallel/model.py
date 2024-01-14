@@ -9,40 +9,30 @@ class Actor(nn.Module):
         self.n_states = n_states
         self.n_actions = n_actions
 
-        self.fc1 = nn.Linear(in_features=self.n_states, out_features=64)
-        self.fc2 = nn.Linear(in_features=64, out_features=64)
-        self.fc_linear = nn.Linear(in_features=64, out_features=1)
-        self.fc_angular = nn.Linear(in_features=64, out_features=1)
-        # self.__init__weights(self.fc1)
-        # self.__init__weights(self.fc2)
-        # self.__init__weights(self.fc_linear)
-        # self.__init__weights(self.fc_angular)
-        # print("self.fc1_bias: ", self.fc1.bias)
-        # print("self.fc2_bias: ", self.fc2.bias)
-        # print("self.fc_liner_bias: ", self.fc_linear.bias)
-        # print("self.fc_angular_bias: ", self.fc_angular.bias)
-
-        # print("self.fc1_weight: ", self.fc1.weight)
-        # print("self.fc2_weight: ", self.fc2.weight)
-        # print("self.fc_liner_weight: ", self.fc_linear.weight)
+        # 小さいサイズ
+        # self.fc1 = nn.Linear(in_features=self.n_states, out_features=64)
+        # self.fc2 = nn.Linear(in_features=64, out_features=64)
+        # self.fc_linear = nn.Linear(in_features=64, out_features=1)
+        # self.fc_angular = nn.Linear(in_features=64, out_features=1)
+        ## ネットワークのアーキテクチャ情報を保存
+        # self.architecture = {'layers': [n_states, 64, 64, n_actions]}
         
+        # 論文サイズ
+        self.fc1 = nn.Linear(in_features=self.n_states, out_features=256)
+        self.fc2 = nn.Linear(in_features=256, out_features=256)
+        self.f3 = nn.Linear(in_features=256, out_features=128)
+        self.fc_linear = nn.Linear(in_features=128, out_features=1)
+        self.fc_angular = nn.Linear(in_features=128, out_features=1)
+        ## ネットワークのアーキテクチャ情報を保存
+        self.architecture = {'layers': [n_states, 256, 256, 128, n_actions]}
+
         self.log_std = nn.Parameter(torch.full((self.n_actions,),-1.5))
-        # self.log_std = nn.Parameter(torch.full((self.n_actions,),-2.5))
-        # self.log_std = nn.Parameter(torch.tensor([-4.0, -2.5]))
-
-        # ネットワークのアーキテクチャ情報を保存
-        self.architecture = {'layers': [n_states, 64, 64, n_actions]}
     
-    # def __init__weights(self, module):
-    #     if isinstance(module, nn.Linear):
-    #         module.bias.data.zero_()
-    #         # module.weight.data.normal_(0, 0.1)
-        
-
     def forward(self, x):
 
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
+        x = F.relu(self.f3(x))
         
         # mean_linear = F.tanh(F.relu((self.fc_linear(x))))
         mean_linear = F.tanh(self.fc_linear(x))
@@ -74,16 +64,24 @@ class Critic(nn.Module):
     def __init__(self, n_states):
         super().__init__()
         self.n_states = n_states
-        self.fc1 = nn.Linear(in_features=self.n_states, out_features=64)
-        self.fc2 = nn.Linear(in_features=64, out_features=64)
-        self.fc3 = nn.Linear(in_features=64, out_features=1)
 
+        # 小さいサイズ
+        # self.fc1 = nn.Linear(in_features=self.n_states, out_features=64)
+        # self.fc2 = nn.Linear(in_features=64, out_features=64)
+        # self.fc3 = nn.Linear(in_features=64, out_features=1)
+
+        # 論文サイズ
+        self.fc1 = nn.Linear(in_features=self.n_states, out_features=256)
+        self.fc2 = nn.Linear(in_features=256, out_features=256)
+        self.fc3 = nn.Linear(in_features=256, out_features=128)
+        self.fc4 = nn.Linear(in_features=128, out_features=1)
 
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = F.relu(self.fc3(x))
+        x = self.fc4(x)
         return x
     
     def get_architecture(self):

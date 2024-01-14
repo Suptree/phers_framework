@@ -17,6 +17,7 @@ class PheromoneFramework:
     def __init__(self, id):
         self.id = id
         self.robot_name = f"hero_{id}" # hero_0
+        self.robot_radius = 0.04408
 
         # 原点座標
         self.origin_x = float((int(self.id) % 4) * 20.0) 
@@ -159,13 +160,49 @@ class PheromoneFramework:
             self.theta = angles[2]
             pheromone_value = Float32MultiArray()
 
+            # ロボットの現在の位置
+            current_x = pos.x
+            current_y = pos.y
+            angles = [math.pi/4, 0, -math.pi/4, math.pi/2, -math.pi/2, 3*math.pi/4, math.pi, -3*math.pi/4]
+            # 8方向の座標を計算
+            directions = []
+            debug_index = []
+            for i, angle in enumerate(angles):
+                # ロボットの向きに応じた角度を考慮
+                adjusted_angle = self.theta + angle
 
-            x_index, y_index = self.posToIndex(pos.x, pos.y)
-            for j in reversed(range(3)):
-                for i in range(3):
+                # X, Y座標を計算
+                dir_x = current_x + self.robot_radius * math.cos(adjusted_angle)
+                dir_y = current_y + self.robot_radius * math.sin(adjusted_angle)
+                # print(f"angle degree: {angle}, adjusted_angle: {adjusted_angle}, dir_x: {dir_x}, dir_y: {dir_y}")
+                #　度数法でprint
+                # print(f"angle degree: {angle * 180 / math.pi}, adjusted_angle: {adjusted_angle * 180 / math.pi}, dir_x: {dir_x}, dir_y: {dir_y}")
+                
+
+                directions.append((dir_x, dir_y))
+                x_index, y_index = self.posToIndex(dir_x, dir_y)
+                debug_index.append((x_index, y_index))
+                pheromone_value.data.append(
+                    self.pheromone.getPheromone(x_index, y_index)
+                )
+
+                # 現在のロボットの座標を4番目と5番目の要素の間に挿入
+                if i == 3:
+                    directions.append((current_x, current_y))
+                    x_index, y_index = self.posToIndex(dir_x, dir_y)
+                    debug_index.append((x_index, y_index))
                     pheromone_value.data.append(
-                        self.pheromone.getPheromone(x_index + i - 1, y_index + j - 1)
+                        self.pheromone.getPheromone(x_index, y_index)
                     )
+
+
+
+            # x_index, y_index = self.posToIndex(pos.x, pos.y)
+            # for j in reversed(range(3)):
+            #     for i in range(3):
+            #         pheromone_value.data.append(
+            #             self.pheromone.getPheromone(x_index + i - 1, y_index + j - 1)
+            #         )
         except Exception as e:
             # print("Error occured in pheromoneCallback")
             # print(e)

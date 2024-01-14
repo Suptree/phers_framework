@@ -18,6 +18,7 @@ class Logger:
         ## 報酬ログ
         self.reward_history = []
         self.baseline_reward_history = []
+        self.iteration_per_reward_average = []
         ## アクターとクリティックの損失ログ
         self.losses_actors = []
         self.losses_critics = []
@@ -37,6 +38,10 @@ class Logger:
         self.action_samples_history = [[] for _ in range(n_actions)]
         self.angle_to_goal_history = []
         self.pheromone_average_history = []
+        self.pheromone_left_history = []
+        self.pheromone_right_history = []
+
+        self.step_count_history = []
 
     def plot_graph(self, iteration, n_actions):
         plt.figure(figsize=(30, 18))
@@ -123,6 +128,23 @@ class Logger:
         plt.legend(loc='upper left')
         plt.grid(True)
 
+        plt.subplot(3, 4, 9)
+        # カテゴリごとに色を設定
+        colors = {0: 'green', 1: 'red', 2: 'blue'}
+        labels = {0: 'Goal', 1: 'Collision', 2: 'Timeout'}
+        # エピソード番号のカウンタを初期化
+        episode_counter = 0
+
+        # 各エピソードのステップカウントをプロット
+        for i, (cat, step) in enumerate(self.step_count_history):
+            plt.bar(i, step, color=colors[cat], label=labels[cat] if i == 0 else "")
+        plt.title("Total Steps by Done Category")
+        plt.xlabel("Episode")
+        plt.ylabel("Total Steps")
+        plt.ylim(-10, 400)
+        plt.legend(loc='upper left')
+        plt.grid(True)
+
         # 保存
         plt.tight_layout()
         filename = f"{self.dir_name}/training_data_{iteration}.png"
@@ -132,7 +154,7 @@ class Logger:
     def plot_action_graph(self, iteration, n_actions):
 
         # n_actions の値に基づいて新しい Figure を作成
-        n_rows = n_actions+1  # アクションの数と角度のために1行追加
+        n_rows = n_actions+2  # アクションの数と角度のために1行追加 # フェロモンでさらに1行追加
         n_cols = 2  # 平均とサンプルのグラフと標準偏差のグラフのために2列
 
         plt.figure(figsize=(16, 6 * n_rows))  # Figure のサイズを調整
@@ -158,7 +180,7 @@ class Logger:
             plt.legend(loc='upper left')
 
         # 角度の履歴のプロット
-        plt.subplot(n_rows, n_cols, n_cols * n_rows - 1)  # 新しいサブプロット位置を設定
+        plt.subplot(n_rows, n_cols, n_cols * n_rows - 3)  # 新しいサブプロット位置を設定
         plt.plot(self.angle_to_goal_history, label="Angle to Goal", color="purple")
         plt.title("Robot Angle to Goal")
         plt.xlabel("Step")
@@ -168,14 +190,34 @@ class Logger:
         plt.grid(True)
 
         # フェロモン平均値の履歴のプロット
-        plt.subplot(n_rows, n_cols, n_cols * n_rows)  # 新しいサブプロット位置を設定
+        plt.subplot(n_rows, n_cols, n_cols * n_rows - 2)  # 新しいサブプロット位置を設定
         plt.plot(self.pheromone_average_history, label="Pheromone Average Value", color="green")
         plt.title("Pheromone Average Value")
         plt.xlabel("Step")
         plt.ylabel("Pheromone Average Value")
         plt.ylim(-0.1, 1.1)
         plt.legend(loc='upper left')
+        plt.grid(True)
 
+        # フェロモン平均値の履歴のプロット
+        plt.subplot(n_rows, n_cols, n_cols * n_rows - 1)  # 新しいサブプロット位置を設定
+        plt.plot(self.pheromone_left_history, label="Left Value", color="blue")
+        plt.plot(self.pheromone_right_history, label="Right Value", color="orange")
+        plt.title("Pheromone Left and Right Average Value")
+        plt.xlabel("Step")
+        plt.ylabel("Pheromone Average Value")
+        plt.ylim(-0.1, 1.1)
+        plt.legend(loc='upper left')
+        plt.grid(True)
+
+        # フェロモンの右-左の差分の履歴のプロット
+        plt.subplot(n_rows, n_cols, n_cols * n_rows)  # 新しいサブプロット位置を設定
+        plt.plot(np.array(self.pheromone_right_history) - np.array(self.pheromone_left_history), label="Right - Left", color="red")
+        plt.title("Pheromone Right - Left")
+        plt.xlabel("Step")
+        plt.ylabel("Pheromone Right - Left")
+        plt.ylim(-1.1, 1.1)
+        plt.legend(loc='upper left')
         plt.grid(True)
 
 
@@ -194,11 +236,12 @@ class Logger:
         losses_filename = f"{self.dir_name}/training_history/actor_critic_losses.csv"
         metrics_filename = f"{self.dir_name}/training_history/training_metrics.csv"
         learning_rate_filename = f"{self.dir_name}/training_history/learning_rate.csv"
+        step_count_filename = f"{self.dir_name}/training_history/step_count.csv"
 
         # Episode Rewards のデータフレームを作成して保存
         rewards_df = pd.DataFrame({
             "Episode Rewards": self.reward_history,
-            "Baseline Rewards": self.baseline_reward_history
+            "Baseline Rewards": self.baseline_reward_history,
         })
         self.save_dataframe_to_csv(rewards_df, rewards_filename)
 
@@ -226,6 +269,9 @@ class Logger:
         })
         self.save_dataframe_to_csv(learning_rate_df, learning_rate_filename)
 
+        # ステップカウント情報をデータフレームに変換
+        step_count_df = pd.DataFrame(self.step_count_history, columns=["Done Category", "Total Steps"])
+        self.save_dataframe_to_csv(step_count_df, step_count_filename)
     # def save_dataframe_to_csv(self, dataframe, filename):
     #     # 既存の CSV ファイルがある場合は読み込む
     #     if os.path.exists(filename):
@@ -291,6 +337,7 @@ class Logger:
         losses_filename = f"{dir_path}/actor_critic_losses.csv"
         metrics_filename = f"{dir_path}/training_metrics.csv"
         learning_rate_filename = f"{dir_path}/learning_rate.csv"
+        step_count_filename = f"{dir_path}/step_count.csv"
 
         # Episode Rewards のデータを読み込んで統合
         if os.path.exists(rewards_filename):
@@ -323,8 +370,17 @@ class Logger:
         else:
             print(f"{learning_rate_filename} does not exist.")
 
+        # ステップカウント情報を読み込んで統合
+        if os.path.exists(step_count_filename):
+            step_count_df = pd.read_csv(step_count_filename)
+            self.step_count_history = list(zip(step_count_df["Done Category"], step_count_df["Total Steps"]))
+        else:
+            print(f"{step_count_filename} does not exist.")
+
     def clear_action_logs(self):
         self.action_means_history = [[] for _ in range(len(self.action_means_history))]
         self.action_samples_history = [[] for _ in range(len(self.action_samples_history))]
         self.angle_to_goal_history = []
         self.pheromone_average_history = []
+        self.pheromone_left_history = []
+        self.pheromone_right_history = []

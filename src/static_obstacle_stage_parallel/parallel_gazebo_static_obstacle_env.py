@@ -183,6 +183,15 @@ class GazeboEnvironment:
         info = None
         # infoの設定
         if self.done:
+            # # ロボットの速度を停止
+            # twist = Twist()
+            # twist.linear = Vector3(x=0, y=0, z=0)
+            # twist.angular = Vector3(x=0, y=0, z=0)
+            # try:
+            #     self.cmd_vel_pub.publish(twist)
+            # except rospy.ServiceException as e:
+            #     print("Spawn URDF service call failed: {0}".format(e))
+
             task_time = rospy.get_time() - self.reset_timer
             if self.is_goal:
                 done_category = 0
@@ -191,17 +200,25 @@ class GazeboEnvironment:
             else: # self.is_timeout
                 done_category = 2
             info = {"task_time": task_time, "done_category": done_category, "angle_to_goal": math.degrees(next_state_angle_to_goal),
-                    "pheromone_mean": np.mean(next_state_pheromone_value)}
+                    "pheromone_mean": np.mean(next_state_pheromone_value),
+                    "pheromone_value": next_state_pheromone_value,
+                    "pheromone_left_value" : (next_state_pheromone_value[0] + next_state_pheromone_value[3] + next_state_pheromone_value[6])/3.0,
+                    "pheromone_right_value" : (next_state_pheromone_value[2] + next_state_pheromone_value[5] + next_state_pheromone_value[8])/3.0,
+                    }
         else:
             info = {"task_time": None, "done_category": None, "angle_to_goal": math.degrees(next_state_angle_to_goal),
-                    "pheromone_mean": np.mean(next_state_pheromone_value)}
+                    "pheromone_mean": np.mean(next_state_pheromone_value),
+                    "pheromone_value": next_state_pheromone_value,
+                    "pheromone_left_value" : (next_state_pheromone_value[0] + next_state_pheromone_value[3] + next_state_pheromone_value[6])/3.0,
+                    "pheromone_right_value" : (next_state_pheromone_value[2] + next_state_pheromone_value[5] + next_state_pheromone_value[8])/3.0,
+                    }
         return self.state, reward, self.done, baseline_reward, info
 
 
     def calculate_rewards(self, next_state_distance_to_goal,next_state_robot_angular_velocity_z):
         Rw = -1.0  # angular velocity penalty constant
-        Ra = 30.0  # goal reward constant
-        Rc = -30.0 # collision penalty constant
+        Ra = 300.0  # goal reward constant
+        Rc = -300.0 # collision penalty constant
         Rt = -0.1  # time penalty
         w_m = 0.8  # maximum allowable angular velocity
         wd_p = 4.0 # weight for positive distance
@@ -218,7 +235,7 @@ class GazeboEnvironment:
             r_d = wd_n * goal_to_distance_diff
         r_w = Rw if abs(next_state_robot_angular_velocity_z) > w_m else 0  # angular velocity penalty
         r_t = Rt
-        reward = r_g + r_c + r_d + r_w
+        reward = r_g + r_c + r_d + r_w + r_t
         baseline_reward = r_g + r_c + r_d + r_w
 
         return reward, baseline_reward
@@ -306,14 +323,18 @@ class GazeboEnvironment:
         rospy.sleep(1.0)
 
         # ゴールの初期位置を設定
-        self.set_random_goal()
+        # self.set_random_goal()
+        # self.set_range_random_goal()
+        # self.set_uniform_distance_random_goal()
+        self.set_uniform_distance_range_random_goal()
 
         # 新しいゴールマーカーを設定
         self.set_goal_marker(self.goal_pos_x, self.goal_pos_y)
 
         # 静的障害物の位置を設定
-        self.set_static_obstacles()
+        # self.set_static_obstacles()
         # self.set_distance_random_static_obstacle()
+        self.set_distance_range_random_static_obstacle()
         # 静的障害物を追加
         self.add_static_obstacle()
 
@@ -494,7 +515,32 @@ class GazeboEnvironment:
                 if distance_to_goal >= 0.1:
                     self.obstacle.append((obstacle_x, obstacle_y))
                     break
-        
+    def set_distance_range_random_static_obstacle(self):
+        """ 静的障害物の位置をランダムに設定 """
+        # 静的障害物の位置をランダムに設定
+        self.obstacle = []
+        angle_offset = math.radians(10)  # ±10度の範囲
+
+        for i in range(4):
+            while True:
+                # 原点からの距離をランダムに設定
+                distance = random.uniform(0.4, 0.8)
+                # angle = random.uniform(0, 2 * math.pi)  # 角度をランダムに設定
+                base_angle = i * math.pi / 2.0  # 角度をランダムに設定
+                
+                # 基本の角度からランダムなオフセットを加える
+                obstacle_angle = base_angle + random.uniform(-angle_offset, angle_offset)
+
+                obstacle_x = self.origin_x + distance * math.cos(obstacle_angle)
+                obstacle_y = self.origin_y + distance * math.sin(obstacle_angle)
+
+                # ゴールとの距離を計算
+                distance_to_goal = math.sqrt((obstacle_x - self.goal_pos_x) ** 2 + (obstacle_y - self.goal_pos_y) ** 2)
+
+                # ゴールとの距離が0.1以上ならば配置
+                if distance_to_goal >= 0.1:
+                    self.obstacle.append((obstacle_x, obstacle_y))
+                    break
     def shutdown(self):
         """
         Shuts down the ROS node.

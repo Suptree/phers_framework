@@ -123,6 +123,10 @@ class PPOAgent:
         logger_actions = []
         logger_angle_to_goal = []
         logger_pheromone_average_value = []
+        logger_pheromone_value = []
+        logger_pheromone_left_value = []
+        logger_pheromone_right_value = []
+        logger_step_count = []
         collect_action_flag = True
         try:
             while True:
@@ -163,13 +167,18 @@ class PPOAgent:
                         logger_actions.append(logger_action)
                         logger_angle_to_goal.append(info["angle_to_goal"])
                         logger_pheromone_average_value.append(info["pheromone_mean"])
+                        logger_pheromone_value.append(info["pheromone_value"])
+                        logger_pheromone_left_value.append(info["pheromone_left_value"])
+                        logger_pheromone_right_value.append(info["pheromone_right_value"])
                         
 
 
                 print(f"HERO_{id} Reward : {total_reward}, Step : {total_steps}")
-                trajectory.append(episode_data)
-                logger_reward.append(total_reward)
-                logger_baseline_reward.append(total_baseline_reward)
+                if total_steps > 1:
+                    trajectory.append(episode_data)
+                    logger_reward.append(total_reward)
+                    logger_baseline_reward.append(total_baseline_reward)
+                    logger_step_count.append((info["done_category"],total_steps))
                 
                 if collect_step_count >= self.collect_step:
                     break
@@ -177,7 +186,18 @@ class PPOAgent:
             # print(f"Finishing : Process {id} finished collecting data")
             env.shutdown()
             print(f"Process {id} is Finished")
-            return (trajectory, logger_reward, logger_baseline_reward, logger_entropies, logger_action_means, logger_action_stds, logger_actions, logger_angle_to_goal, logger_pheromone_average_value)
+            return (trajectory, 
+                    logger_reward, 
+                    logger_baseline_reward, 
+                    logger_entropies, 
+                    logger_action_means, 
+                    logger_action_stds, 
+                    logger_actions, 
+                    logger_angle_to_goal, 
+                    logger_pheromone_average_value, 
+                    logger_pheromone_left_value, 
+                    logger_pheromone_right_value,
+                    logger_step_count)
         except Exception as e:
             print(f"ERROR : Process {id} is Finished")
             print(e)
@@ -189,17 +209,28 @@ class PPOAgent:
             local_critic = self.create_critics_copy()
             states, actions, log_prob_olds, rewards, next_states, dones = self.trajectory_buffer.get_per_trajectory(trajectory)
             with torch.no_grad():
+                # print("state_values", states)
                 state_values = local_critic(states).squeeze()
-                next_state_values = local_critic(next_states).squeeze()
+                # print("state_values", state_values)
 
+                # print("next_states", next_states)
+                next_state_values = local_critic(next_states).squeeze()
+                # print("next_state_values", next_state_values)
+
+            
             advantages = []
             advantage = 0
             for t in reversed(range(0, len(rewards))):
                 # エピソードの終了した場合の価値は0にする
-                non_terminal = 1 - dones[t]
+                non_terminal = 1 - dones[t].item()
 
                 # TD誤差を計算
+                # print("non_terminal", non_terminal)
+                # print("reward", rewards[t])
+                # print("next_state_values", next_state_values[t])
+                # print("state_values", state_values[t])
                 delta = rewards[t] + self.gamma * next_state_values[t] * non_terminal - state_values[t]
+                
 
                 # Advantage関数を計算
                 advantage = (delta + self.gamma * self.gae_lambda * non_terminal * advantage).detach()
