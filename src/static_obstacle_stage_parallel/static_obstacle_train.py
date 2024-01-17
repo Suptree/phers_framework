@@ -52,18 +52,21 @@ def main():
 
     agent.save_setting_config()
     # 途中から始める場合、以下のコメントアウトを外す
-    # agent.load_weights("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-14_04-26-15/180_weights.pth")
-    # agent.logger.load_and_merge_csv_data("/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-15_00-42-41/training_history")
+    # load_path = \
+    # "/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-15_18-27-34"
+    # load_iteration = 50
+    # agent.load_weights(load_path + "/" + f"{load_iteration}" + "_weights.pth")
+    # agent.logger.load_and_merge_csv_data(load_path+"/training_history")
 
     signal.signal(signal.SIGINT, exit)
-    for iteration in range(total_iterations):
+    for _ in range(agent.iteration, total_iterations):
         
-        print("+++++++++++++++++++  iteration: {}++++++++++++++".format(iteration))
+        print("+++++++++++++++++++  iteration: {}++++++++++++++".format(agent.iteration))
         share_memory_actor = agent.create_actor_copy()
         share_memory_actor.share_memory()
         
         with mp.Pool(processes=num_env) as pool:
-            tasks = [(i, iteration*num_env + i, share_memory_actor) for i in range(num_env)]
+            tasks = [(i, agent.iteration*num_env + i, share_memory_actor) for i in range(num_env)]
             results = pool.starmap(agent.data_collection, tasks)
             pool.close()
             pool.terminate()
@@ -126,19 +129,20 @@ def main():
         agent.trajectory_buffer.reset()
         agent.replay_memory_buffer.reset()
         
-        if iteration % save_model_interval == 0:
-            agent.save_weights(iteration)
+        if agent.iteration % save_model_interval == 0:
+            agent.save_weights(agent.iteration)
             agent.logger.save_csv()
 
-        if iteration % plot_interval == 0:
-            agent.logger.plot_graph(iteration, agent.n_actions)
-            agent.logger.plot_action_graph(iteration, agent.n_actions)
+        if agent.iteration % plot_interval == 0:
+            agent.logger.plot_graph(agent.iteration, agent.n_actions)
+            agent.logger.plot_action_graph(agent.iteration, agent.n_actions)
         # Agentのログをクリア
         agent.logger.clear_action_logs()
 
         # LOGGER
         agent.logger.calucurate_advantage_mean_and_variance()
         agent.logger.calucurate_entropy_mean()
+        agent.iteration += 1
 
 def exit(signal, frame):
     print("\nCtrl+C detected. Saving training data and exiting...")    

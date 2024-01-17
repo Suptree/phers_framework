@@ -17,6 +17,8 @@ from geometry_msgs.msg import Twist
 from geometry_msgs.msg import Vector3
 from visualization_msgs.msg import Marker
 import time
+import os
+import slackweb
 
 class GazeboEnvironment:
     def __init__(self, id):
@@ -51,7 +53,7 @@ class GazeboEnvironment:
         ]
 
         # 障害物のSDFファイルのパス
-        obstacle_path = "/home/nishilab/catkin_ws/src/phers_framework/models/phers_ex01_obstacle/model.sdf"
+        obstacle_path = os.environ.get("STATIC_OBSTACLE_PATH")
         self.obstacle_sdf = open(obstacle_path, "r").read()
 
 
@@ -183,14 +185,6 @@ class GazeboEnvironment:
         info = None
         # infoの設定
         if self.done:
-            # # ロボットの速度を停止
-            # twist = Twist()
-            # twist.linear = Vector3(x=0, y=0, z=0)
-            # twist.angular = Vector3(x=0, y=0, z=0)
-            # try:
-            #     self.cmd_vel_pub.publish(twist)
-            # except rospy.ServiceException as e:
-            #     print("Spawn URDF service call failed: {0}".format(e))
 
             task_time = rospy.get_time() - self.reset_timer
             if self.is_goal:
@@ -268,6 +262,17 @@ class GazeboEnvironment:
 
         return self.pheromone_value, next_state_distance_to_goal, next_state_angle_to_goal, self.robot_linear_velocity.x, self.robot_angular_velocity.z
     
+    def normalize_distance_to_goal(self, distance_to_goal):
+        max_distance = 20.0
+        normalize_distance_to_goal = distance_to_goal / max_distance
+
+        return normalize_distance_to_goal
+    
+    def normalize_angle_to_goal(self, angle_to_goal):
+        normalize_angle_to_goal = angle_to_goal / math.pi
+
+        return normalize_angle_to_goal
+    
     # ゴールに到達したかどうか
     def check_goal(self):
         distance_to_goal =  math.sqrt((self.robot_position.x - self.goal_pos_x)**2
@@ -326,6 +331,8 @@ class GazeboEnvironment:
         # self.set_random_goal()
         # self.set_range_random_goal()
         # self.set_uniform_distance_random_goal()
+
+        # 訓練
         self.set_uniform_distance_range_random_goal()
 
         # 新しいゴールマーカーを設定
@@ -334,6 +341,8 @@ class GazeboEnvironment:
         # 静的障害物の位置を設定
         # self.set_static_obstacles()
         # self.set_distance_random_static_obstacle()
+
+        # 訓練
         self.set_distance_range_random_static_obstacle()
         # 静的障害物を追加
         self.add_static_obstacle()
@@ -456,6 +465,54 @@ class GazeboEnvironment:
         except rospy.ServiceException as e:
             print("Spawn URDF service call failed: {0}".format(e))
 
+    def set_random_angle_robot(self):
+        """ ロボットの位置を初期化 """
+
+        state_msg = ModelState()
+        state_msg.model_name = self.robot_name
+        
+        state_msg.pose.position.x = self.origin_x
+        state_msg.pose.position.y = self.origin_y
+
+        state_msg.pose.position.z = 0.2395
+
+        # ランダムな角度をラジアンで生成
+        yaw = random.uniform(0, 2 * math.pi)
+
+        # 四元数への変換
+        qx = 0.0
+        qy = 0.0
+        qz = math.sin(yaw / 2)
+        qw = math.cos(yaw / 2)
+
+        state_msg.pose.orientation.x = 0.0
+        state_msg.pose.orientation.y = 0.0
+        state_msg.pose.orientation.z = qz
+        state_msg.pose.orientation.w = qw
+        state_msg.twist.linear.x = 0.0
+        state_msg.twist.linear.y = 0.0
+        state_msg.twist.linear.z = 0.0
+        state_msg.twist.angular.x = 0.0
+        state_msg.twist.angular.y = 0.0
+        state_msg.twist.angular.z = 0.0
+        
+
+        try:
+            self.set_model_state(state_msg)
+        except rospy.ServiceException as e:
+            print("Spawn URDF service call failed: {0}".format(e))
+
+        # ロボットの色をリセット
+        self.robot_color = "CYEAN"
+        color = ColorRGBA()
+        color.r = 0
+        color.g = 160
+        color.b = 233
+        color.a = 255
+        try:
+            self.pub_led.publish(color)
+        except rospy.ServiceException as e:
+            print("Spawn URDF service call failed: {0}".format(e))
 
 
     def add_static_obstacle(self):
@@ -472,8 +529,12 @@ class GazeboEnvironment:
             try:
                 self.spawn_model_service(obstacle_name, self.obstacle_sdf, obstacle_name, initial_pose, "world")
             except rospy.ServiceException as e:
-                print("Spawn URDF service call failed: {0}".format(e))
-    
+                slack_web_url = os.environ.get('SLACK_WEB_URL')
+                slack = slackweb.Slack(url=slack_web_url)
+                rl_ros_machine  = os.environ.get('RL_ROS_MACHINE')
+
+                slack.notify(text=f"{rl_ros_machine} : Gazebo core dumped!")
+                print("Static Obstacle Spawn URDF service call failed: {0}".format(e))    
     def delete_static_obstacle(self):
         """ 静的障害物を削除 """
         for i in range(4):
@@ -524,7 +585,7 @@ class GazeboEnvironment:
         for i in range(4):
             while True:
                 # 原点からの距離をランダムに設定
-                distance = random.uniform(0.4, 0.8)
+                distance = random.uniform(0.4, 1.1)
                 # angle = random.uniform(0, 2 * math.pi)  # 角度をランダムに設定
                 base_angle = i * math.pi / 2.0  # 角度をランダムに設定
                 
@@ -538,7 +599,7 @@ class GazeboEnvironment:
                 distance_to_goal = math.sqrt((obstacle_x - self.goal_pos_x) ** 2 + (obstacle_y - self.goal_pos_y) ** 2)
 
                 # ゴールとの距離が0.1以上ならば配置
-                if distance_to_goal >= 0.1:
+                if distance_to_goal >= 0.35:
                     self.obstacle.append((obstacle_x, obstacle_y))
                     break
     def shutdown(self):
@@ -687,3 +748,13 @@ class GazeboEnvironment:
 
         # マーカーをパブリッシュ
         self.marker_pub.publish(delete_marker)
+
+    def stop_robot(self):
+        # ロボットの速度を停止
+        twist = Twist()
+        twist.linear = Vector3(x=0, y=0, z=0)
+        twist.angular = Vector3(x=0, y=0, z=0)
+        try:
+            self.cmd_vel_pub.publish(twist)
+        except rospy.ServiceException as e:
+            print("Spawn URDF service call failed: {0}".format(e))

@@ -41,6 +41,8 @@ class PPOAgent:
         self.entropy_coefficient = entropy_coefficient # エントロピー項の係数
         self.device = device # CPUかGPUか
 
+        self.iteration = 0 # 現在のイテレーション数
+
         self.actor = Actor(n_states=self.n_states,n_actions=self.n_actions).to(self.device)
         self.critic = Critic(n_states=self.n_states).to(self.device)
 
@@ -302,7 +304,7 @@ class PPOAgent:
         self.critic_optimizer.load_state_dict(checkpoint["critic_optimizer_state_dict"])
         self.actor_scheduler.load_state_dict(checkpoint["actor_scheduler_state_dict"])
         self.critic_scheduler.load_state_dict(checkpoint["critic_scheduler_state_dict"])
-        # iteration = checkpoint["iteration"]
+        self.iteration = checkpoint["iteration"]
         # state_rms_mean = checkpoint["state_rms_mean"]
         # state_rms_var = checkpoint["state_rms_var"]
         # return iteration

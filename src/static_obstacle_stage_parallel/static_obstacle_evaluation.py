@@ -45,7 +45,7 @@ def main():
 
     # 引数からモデルのパスを取得
 
-    agent = PPOAgent(env_name="Parallel-Static-Obstacle",
+    agent = PPOAgent(env_name="Evaluate-Static-Obstacle",
                     n_iteration=total_run, 
                     n_states=13, 
                     action_bounds=[-1, 1], 
@@ -90,6 +90,7 @@ def main():
 
             total_reward += reward
             if terminated:
+                env.stop_robot()
                 done = 1
 
             state = next_state
@@ -115,8 +116,7 @@ def main():
         # 結果をリストに追加
         results.append([run, total_steps, task_time, total_reward, done_category])
     # CSVファイルに結果を書き出す
-    start_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    dir_name = f"./Evaluate-Static-Obstacle/{start_time}"
+    dir_name = f"./ppo_Evaluate-Static-Obstacle/{agent.start_time}"
     # ディレクトリを作成
     os.makedirs(dir_name, exist_ok=True)
     filename = f'{dir_name}/static_obstacle_results.csv'
