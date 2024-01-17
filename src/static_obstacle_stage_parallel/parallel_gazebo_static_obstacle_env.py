@@ -309,7 +309,7 @@ class GazeboEnvironment:
         try:
             self.cmd_vel_pub.publish(twist)
         except rospy.ServiceException as e:
-            print("Spawn URDF service call failed: {0}".format(e))
+            print("[def reset] : {0}".format(e))
         rospy.sleep(1.0)
 
         # 原点マーカーを削除
@@ -451,7 +451,7 @@ class GazeboEnvironment:
         try:
             self.set_model_state(state_msg)
         except rospy.ServiceException as e:
-            print("Spawn URDF service call failed: {0}".format(e))
+            print("[def set_robot - robot]: {0}".format(e))
 
         # ロボットの色をリセット
         self.robot_color = "CYEAN"
@@ -463,7 +463,7 @@ class GazeboEnvironment:
         try:
             self.pub_led.publish(color)
         except rospy.ServiceException as e:
-            print("Spawn URDF service call failed: {0}".format(e))
+            print("[def set_robot - led]: {0}".format(e))
 
     def set_random_angle_robot(self):
         """ ロボットの位置を初期化 """
@@ -500,7 +500,7 @@ class GazeboEnvironment:
         try:
             self.set_model_state(state_msg)
         except rospy.ServiceException as e:
-            print("Spawn URDF service call failed: {0}".format(e))
+            print("[def set_random_angle_robot - robot]: {0}".format(e))
 
         # ロボットの色をリセット
         self.robot_color = "CYEAN"
@@ -512,7 +512,7 @@ class GazeboEnvironment:
         try:
             self.pub_led.publish(color)
         except rospy.ServiceException as e:
-            print("Spawn URDF service call failed: {0}".format(e))
+            print("[def set_random_angle_robot - led]: {0}".format(e))
 
 
     def add_static_obstacle(self):
@@ -534,7 +534,7 @@ class GazeboEnvironment:
                 rl_ros_machine  = os.environ.get('RL_ROS_MACHINE')
 
                 slack.notify(text=f"{rl_ros_machine} : Gazebo core dumped!")
-                print("Static Obstacle Spawn URDF service call failed: {0}".format(e))    
+                print("[def add_static_obstacle]: {0}".format(e))    
     def delete_static_obstacle(self):
         """ 静的障害物を削除 """
         for i in range(4):
@@ -544,7 +544,7 @@ class GazeboEnvironment:
             try:
                 self.delete_model_service(obstacle_name)
             except rospy.ServiceException as e:
-                print("Spawn URDF service call failed: {0}".format(e))
+                print("[def delete_static_obstacle]: {0}".format(e))
 
     def set_static_obstacles(self):
         # 静的障害物の位置
@@ -757,4 +757,4 @@ class GazeboEnvironment:
         try:
             self.cmd_vel_pub.publish(twist)
         except rospy.ServiceException as e:
-            print("Spawn URDF service call failed: {0}".format(e))
+            print("[def stop_robot]: {0}".format(e))
