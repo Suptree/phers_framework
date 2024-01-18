@@ -48,7 +48,7 @@ class GazeboEnvironment:
         # step return の初期化
         self.state = [None] * self.robot_num
         self.reward = [None] * self.robot_num
-        self.done = [None] * self.robot_num
+        self.done = [False] * self.robot_num
         self.info = [None] * self.robot_num
 
         # 非同期更新
@@ -202,12 +202,12 @@ class GazeboEnvironment:
                 print(f"\033[1;36m[{self.robot_name[i]}]\033[0m : \033[38;5;214m/////// COLLISION ///////\033[0m")
 
             # TODO : INFOの実装
-            if self.done:
+            if self.done[i]:
 
                 task_time = rospy.get_time() - self.reset_timer
-                if self.is_goal:
+                if self.is_goal[i]:
                     done_category = 0
-                elif self.is_collided:
+                elif self.is_collided[i]:
                     done_category = 1
                 else: # self.is_timeout
                     done_category = 2
@@ -216,14 +216,14 @@ class GazeboEnvironment:
                         "pheromone_value": next_state_pheromone_value,
                         "pheromone_left_value" : (next_state_pheromone_value[0] + next_state_pheromone_value[3] + next_state_pheromone_value[6])/3.0,
                         "pheromone_right_value" : (next_state_pheromone_value[2] + next_state_pheromone_value[5] + next_state_pheromone_value[8])/3.0,
-                        }
+                }
             else:
                 info[i] = {"task_time": None, "done_category": None, "angle_to_goal": math.degrees(next_state_angle_to_goal),
                         "pheromone_mean": np.mean(next_state_pheromone_value),
                         "pheromone_value": next_state_pheromone_value,
                         "pheromone_left_value" : (next_state_pheromone_value[0] + next_state_pheromone_value[3] + next_state_pheromone_value[6])/3.0,
                         "pheromone_right_value" : (next_state_pheromone_value[2] + next_state_pheromone_value[5] + next_state_pheromone_value[8])/3.0,
-                        }
+                }
                 # 終了したとき、停止
             if self.done[i]:
                 twist = Twist()

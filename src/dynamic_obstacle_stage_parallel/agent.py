@@ -179,6 +179,7 @@ class PPOAgent:
                                 logger_reward.append(total_reward[i])
                                 logger_baseline_reward.append(total_baseline_reward[i])
                                 logger_step_count.append((info[i]["done_category"],total_steps[i]))
+                                
                 
                 if collect_step_count >= self.collect_step:
                     break
