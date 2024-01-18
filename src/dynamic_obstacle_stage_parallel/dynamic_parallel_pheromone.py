@@ -13,20 +13,34 @@ from visualization_msgs.msg import MarkerArray
 import tf
 import sys
 
+from phers_framework.msg import PheromoneMultiArray2
+from phers_framework.msg import PheromoneInjection
+
+
 class PheromoneFramework:
     def __init__(self, id):
         self.id = id
-        self.robot_name = f"hero_{id}" # hero_0
-        self.robot_radius = 0.04408
+
+        self.robot_id = id * 2
+        self.robot_num = 2
 
         # 原点座標
         self.origin_x = float((int(self.id) % 4) * 20.0) 
         self.origin_y = float(int(int(self.id) / 4) * 20.0)
 
+        self.robot_name = [f"hero_{self.robot_id}", f"hero_{self.robot_id+1}"]
+        self.robot_radius = 0.04408
+
         # pheromonクラスのインスタンス生成
-        self.pheromone = Pheromone(
-            grid_map_size=40, resolution=50, evaporation=0.0, diffusion=0.0
-        )
+        self.pheromone = [
+            Pheromone(
+                grid_map_size=40, resolution=50, evaporation=0.5, diffusion=0.0
+            ),
+            Pheromone(
+                grid_map_size=40, resolution=50, evaporation=0.5, diffusion=0.0
+            )
+        ]
+
 
         # フェロモンの最大値と最小値を設定
         self.max_pheromone_value = 1.0
@@ -37,26 +51,14 @@ class PheromoneFramework:
         # 最後に受け取った model_states のデータを保存する属性
         self.latest_model_states = None
         
-        # オブジェクトの周りにフェロモンを配置
-        # Refactor repetitive code
-        # 障害物の名前リスト
-
-
-        self.obstacles = [
-            (self.origin_x + 0.0,    self.origin_y + 0.4),
-            (self.origin_x + 0.0,    self.origin_y + (-0.4)),
-            (self.origin_x + 0.4,    self.origin_y + 0.0),
-            (self.origin_x + (-0.4), self.origin_y + 0.0)
-        ]
+        # 更新用のタイマーを設定
+        self.update_interval = rospy.Duration(0.1)  # 0.1秒
+        self.update_timer = rospy.Timer(self.update_interval, self.update_callback)
         
-        # for obs in self.obstacles:
-        #     x_index, y_index = self.posToIndex(obs[0], obs[1])
-        #     self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.06)
-
         # Publisher & Subscriber
         # フェロモン値を送信
         self.publish_pheromone = rospy.Publisher(
-            f"/{self.robot_name}/pheromone_value", Float32MultiArray, queue_size=1
+            f"/env_{self.id}/pheromone_value",PheromoneMultiArray2 , queue_size=1
         )
         # gazeboの環境上にあるオブジェクトの状態を取得
         # 取得すると, pheromoneCallback関数が呼び出される
@@ -65,11 +67,14 @@ class PheromoneFramework:
         )
         # リセット信号のSubscriber
         self.subscribe_reset = rospy.Subscriber(
-            f"/{self.robot_name}/pheromone_reset_signal", Empty, self.resetPheromoneMap
+            f"/env_{self.id}/pheromone_reset_signal", Empty, self.resetPheromoneMap
         )
-
+        # インジェクションメッセージのサブスクライバを設定
+        self.injection_subscriber = rospy.Subscriber(
+            f"/env_{self.id}/pheromone_injection", PheromoneInjection, self.injection_callback
+        )
         self.marker_pub = rospy.Publisher(
-            f"/{self.robot_name}/visualization_marker_array", MarkerArray, queue_size=10
+            f"/env_{self.id}/visualization_marker_array", MarkerArray, queue_size=10
         )
 
     
@@ -115,132 +120,97 @@ class PheromoneFramework:
         self.marker_pub.publish(markerArray)
 
     # 座標からフェロモングリッドへ変換
-    def posToIndex(self, x, y):
-        # x_index = math.floor((x - self.origin_x + self.pheromone.grid_map_size/2.0) * self.pheromone.resolution)
-        # y_index = math.floor((y - self.origin_y + self.pheromone.grid_map_size/2.0) * self.pheromone.resolution)
-        x_index = math.floor((x - self.origin_x + ((1.0/self.pheromone.resolution)/2.0) + self.pheromone.grid_map_size/2.0) * self.pheromone.resolution)
-        y_index = math.floor((y - self.origin_y + ((1.0/self.pheromone.resolution)/2.0) + self.pheromone.grid_map_size/2.0) * self.pheromone.resolution)
-        # print("x: {}, y: {}".format(x, y))
-        # print("x - origin_x: {}, y - origin_y: {}".format(x - self.origin_x, y - self.origin_y))
-        # print("x_index: {}, y_index: {}".format(x_index, y_index))
+    def posToIndex(self, x, y, pheromone_map):
+        x_index = math.floor((x - self.origin_x + ((1.0/ pheromone_map.resolution)/2.0) +  pheromone_map.grid_map_size/2.0) *  pheromone_map.resolution)
+        y_index = math.floor((y - self.origin_y + ((1.0/ pheromone_map.resolution)/2.0) + pheromone_map.grid_map_size/2.0) * pheromone_map.resolution)
         if (
             x_index < 0
             or y_index < 0
-            or x_index > self.pheromone.num_cell - 1
-            or y_index > self.pheromone.num_cell - 1
+            or x_index > pheromone_map.num_cell - 1
+            or y_index > pheromone_map.num_cell - 1
         ):
             raise Exception("The pheromone matrix index is out of range.")
         return x_index, y_index    # フェロモングリッドから座標へ変換
     
     
     # セルの中央を返す
-    def indexToPos(self, x_index, y_index): 
-        # x = (x_index / self.pheromone.resolution) + self.origin_x -  (self.pheromone.grid_map_size / 2.0)
-        # y = (y_index / self.pheromone.resolution) + self.origin_y - (self.pheromone.grid_map_size / 2.0)
-        x = (x_index -  (self.pheromone.resolution * self.pheromone.grid_map_size / 2.0)) * (1.0 / self.pheromone.resolution) + self.origin_x
-        y = (y_index -  (self.pheromone.resolution * self.pheromone.grid_map_size / 2.0)) * (1.0 / self.pheromone.resolution) + self.origin_y
+    def indexToPos(self, x_index, y_index, pheromone_map): 
+        x = (x_index -  (pheromone_map.resolution * pheromone_map.grid_map_size / 2.0)) * (1.0 / pheromone_map.resolution) + self.origin_x
+        y = (y_index -  (pheromone_map.resolution * pheromone_map.grid_map_size / 2.0)) * (1.0 / pheromone_map.resolution) + self.origin_y
 
         return x, y
-    
     def pheromoneCallback(self, model_status):
-
+        pheromone_multi_value = PheromoneMultiArray2()
         try:
             self.latest_model_states = model_status
-            # Reading from arguments
-            robot_index = model_status.name.index(self.robot_name)
-            # print(model_status.pose)
-            # print(model_status.twist)
-            pose = model_status.pose[robot_index]
-            # twist = model_status.twist[robot_index]
-            pos = pose.position
-            ori = pose.orientation
+            pheromone_value = [Float32MultiArray(), Float32MultiArray()]
 
-            angles = tf.transformations.euler_from_quaternion(
-                (ori.x, ori.y, ori.z, ori.w))
-            self.theta = angles[2]
-            pheromone_value = Float32MultiArray()
+            for i, robot_name in enumerate(self.robot_name):
+                # ロボットのインデックスを取得
+                robot_index = model_status.name.index(robot_name)
+                pose = model_status.pose[robot_index]
+                pos = pose.position
+                ori = pose.orientation
+                angles = tf.transformations.euler_from_quaternion(
+                    (ori.x, ori.y, ori.z, ori.w))
+                theta = angles[2]
 
-            # ロボットの現在の位置
-            current_x = pos.x
-            current_y = pos.y
-            angles = [math.pi/4, 0, -math.pi/4, math.pi/2, -math.pi/2, 3*math.pi/4, math.pi, -3*math.pi/4]
-            # 8方向の座標を計算
-            directions = []
-            debug_index = []
-            for i, angle in enumerate(angles):
-                # ロボットの向きに応じた角度を考慮
-                adjusted_angle = self.theta + angle
-
-                # X, Y座標を計算
-                dir_x = current_x + self.robot_radius * math.cos(adjusted_angle)
-                dir_y = current_y + self.robot_radius * math.sin(adjusted_angle)
-                # print(f"angle degree: {angle}, adjusted_angle: {adjusted_angle}, dir_x: {dir_x}, dir_y: {dir_y}")
-                #　度数法でprint
-                # print(f"angle degree: {angle * 180 / math.pi}, adjusted_angle: {adjusted_angle * 180 / math.pi}, dir_x: {dir_x}, dir_y: {dir_y}")
-                
-
-                directions.append((dir_x, dir_y))
-                x_index, y_index = self.posToIndex(dir_x, dir_y)
-                debug_index.append((x_index, y_index))
-                pheromone_value.data.append(
-                    self.pheromone.getPheromone(x_index, y_index)
-                )
-
-                # 現在のロボットの座標を4番目と5番目の要素の間に挿入
-                if i == 3:
-                    directions.append((current_x, current_y))
-                    x_index, y_index = self.posToIndex(dir_x, dir_y)
-                    debug_index.append((x_index, y_index))
-                    pheromone_value.data.append(
-                        self.pheromone.getPheromone(x_index, y_index)
+                # 他のロボットのフェロモンマップを参照するためのインデックス
+                other_phero_index = (i + 1) % self.robot_num
+                angles = [math.pi/4, 0, -math.pi/4, math.pi/2, -math.pi/2, 3*math.pi/4, math.pi, -3*math.pi/4]
+                for j, angle in enumerate(angles):
+                    adjusted_angle = theta + angle
+                    dir_x = pos.x + self.robot_radius * math.cos(adjusted_angle)
+                    dir_y = pos.y + self.robot_radius * math.sin(adjusted_angle)
+                    x_index, y_index = self.posToIndex(dir_x, dir_y, self.pheromone[other_phero_index])
+                    pheromone_value[i].data.append(
+                        self.pheromone[other_phero_index].getPheromone(x_index, y_index)
                     )
+                    if j == 3:
+                        # ロボット自身の位置でのフェロモン値を追加
+                        x_index, y_index = self.posToIndex(pos.x, pos.y, self.pheromone[other_phero_index])
+                        pheromone_value[i].data.append(
+                            self.pheromone[other_phero_index].getPheromone(x_index, y_index)
+                        )
 
 
 
-            # x_index, y_index = self.posToIndex(pos.x, pos.y)
-            # for j in reversed(range(3)):
-            #     for i in range(3):
-            #         pheromone_value.data.append(
-            #             self.pheromone.getPheromone(x_index + i - 1, y_index + j - 1)
-            #         )
         except Exception as e:
-            # print("Error occured in pheromoneCallback")
-            # print(e)
-            pheromone_value = Float32MultiArray()
-            for _ in range(9):
-                pheromone_value.data.append(0.0)
+            rospy.logerr("Error occurred in pheromoneCallback: {}".format(e))
+            for _ in range(9):  # 8方向 + 自身の座標 = 9個の値
+                pheromone_multi_value.pheromone1.data.append(0.0)
+                pheromone_multi_value.pheromone2.data.append(0.0)
 
         if not rospy.is_shutdown():
-            self.publish_pheromone.publish(pheromone_value)
+            pheromone_multi_value.pheromone1 = pheromone_value[0]
+            pheromone_multi_value.pheromone2 = pheromone_value[1]
+            self.publish_pheromone.publish(pheromone_multi_value)
 
     def resetPheromoneMap(self, msg):
-        if self.latest_model_states:
-            try:
-                obstacle_names = [f"obs_{self.id}1", f"obs_{self.id}2", f"obs_{self.id}3", f"obs_{self.id}4"]
-                self.obstacles = []  # 障害物リストをリセット
-                for obs_name in obstacle_names:
-                    if obs_name in self.latest_model_states.name:
-                        obs_index = self.latest_model_states.name.index(obs_name)
-                        obs_pose = self.latest_model_states.pose[obs_index]
-                        obs_pos = obs_pose.position
-                        self.obstacles.append((obs_pos.x, obs_pos.y))
-
-            except Exception as e:
-                rospy.logerr("Error updating obstacles in resetPheromoneMap: {}".format(e))
-
-        self.pheromone.reset()
+        for i in range(self.robot_num):
+            self.pheromone[i].reset()
         # 経過時間
         self.start_time = rospy.get_time()
 
-        # オブジェクトの周りにフェロモンを配置
-        # Refactor repetitive code
-        for obs in self.obstacles:
-            x_index, y_index = self.posToIndex(obs[0], obs[1])
-            self.pheromone.injectionCircle(x_index, y_index, self.max_pheromone_value, 0.30)
+    def injection_callback(self, msg):
+        try:
+            # ロボットIDに基づいてフェロモンを射出
+            robot_id = msg.robot_id
+            robot_index = self.latest_model_states.name.index(f"hero_{robot_id}")
+            pose = self.latest_model_states.pose[robot_index]
+            pos = pose.position
 
-        self.publish_markers()
+            # 対応するロボットのフェロモンマップにフェロモンを射出
+            x_index, y_index = self.posToIndex(pos.x, pos.y, self.pheromone[robot_id])
+            self.pheromone[robot_id].injectionCircle(x_index, y_index, msg.radius)
+        except Exception as e:
+            rospy.logerr("Error in injection_callback: {}".format(e))
 
-
+    def update_callback(self, event):
+        min_pheromone_value = 0.0  # 最小フェロモン値を設定
+        max_pheromone_value = 1.0  # 最大フェロモン値を設定
+        for pheromone_map in self.pheromone:
+            pheromone_map.update(min_pheromone_value, max_pheromone_value)
         
 class Pheromone:
     def __init__(self, grid_map_size=0, resolution=0, evaporation=0.0, diffusion=0.0):
@@ -272,7 +242,6 @@ class Pheromone:
             self.isDiffusion = True
 
         # Timers
-        self.update_timer = rospy.get_time()
         self.step_timer = rospy.get_time()
         self.injection_timer = rospy.get_time()
         self.save_timer = rospy.get_time()
@@ -335,8 +304,7 @@ class Pheromone:
                     self.grid[x_index + i, y_index + j] = self.grid[x_index + i, y_index + j] + value
     def update(self, min_pheromone_value, max_pheromone_value):
         current_time = rospy.get_time()
-        time_elapsed = current_time - self.update_timer
-        self.update_timer = current_time
+        update_interval = 0.1
 
         # 拡散を行うかどうかの判定
         if self.isDiffusion is True:
@@ -367,7 +335,7 @@ class Pheromone:
         # 蒸発を行うかどうかの判定
         if self.isEvaporation is True:
             # Evaporation
-            decay = 2 ** (-time_elapsed / self.evaporation)
+            decay = 2 ** (-update_interval / self.evaporation)
             for i in range(self.num_cell):
                 for j in range(self.num_cell):
                     self.grid[i, j] = decay * self.grid[i, j]
@@ -401,7 +369,7 @@ if __name__ == "__main__":
     # 引数を取得
     num_env = int(sys.argv[1])
 
-    rospy.init_node(f"hero_{num_env}_Pheromone_Framework", anonymous=True,)
+    rospy.init_node(f"env_{num_env}_Pheromone_Framework", anonymous=True,)
 
     node = PheromoneFramework(id=num_env)
     rospy.spin()

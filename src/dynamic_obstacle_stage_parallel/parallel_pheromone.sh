@@ -25,7 +25,7 @@ declare -a pids
 # 指定された数だけノードを起動し、プロセスIDを配列に追加
 for (( i=0; i<number_of_nodes; i++ ))
 do
-    rosrun phers_framework static_parallel_pheromone.py $i &
+    rosrun phers_framework dynamic_parallel_pheromone.py $i &
     pids+=($!)
 done
 

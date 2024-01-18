@@ -64,7 +64,7 @@ class PPOAgent:
 
         # ガウス分布を作成
         action_distribution = torch.distributions.Normal(action_mean, action_std)
-        logger_entropy = action_distribution.entropy().mean().item()
+        logger_entropy = action_distribution.entropy().cpu().numpy()
        
         # ガウス分布から行動をサンプリング
         action = action_distribution.sample()
@@ -72,15 +72,6 @@ class PPOAgent:
         # ガウス分布でサンプリングときの確率密度の対数を計算
         log_prob_old = action_distribution.log_prob(action)
 
-        # 行動の値を-1~1の範囲にする
-        # if action[0] < -1 or action[0] > 1:
-        #     action[0] = torch.tanh(action[0])
-        #     # 行動の確率密度の対数の計算
-        #     log_prob_old[0] -= torch.log(1 - action[0].pow(2) + 1e-6)
-        # if action[1] < -1 or action[1] > 1:
-        #     action[1] = torch.tanh(action[1])
-        #     # 行動の確率密度の対数の計算
-        #     log_prob_old[1] -= torch.log(1 - action[1].pow(2) + 1e-6)
 
         # LOGGER - 新しいリスト構造を使用
         if id == 0 :
@@ -92,11 +83,13 @@ class PPOAgent:
             logger_action_std = None
             logger_action = None
 
-        # action[0] = action[0] * 0.2
-        # logger_action[0] = logger_action[0] * 0.2
-        # logger_action_mean[0] = logger_action_mean[0] * 0.2
-
-        return action.cpu().numpy(), log_prob_old.cpu().numpy(), logger_entropy, logger_action_mean, logger_action_std, logger_action
+        action_2d = np.atleast_2d(action.cpu().numpy())
+        log_prob_old_2d = np.atleast_2d(log_prob_old.cpu().numpy())
+        logger_entropy_2d = np.atleast_2d(logger_entropy)
+        logger_action_mean_2d = np.atleast_2d(logger_action_mean)
+        logger_action_std_2d = np.atleast_2d(logger_action_std)
+        logger_action_2d = np.atleast_2d(logger_action)
+        return action_2d, log_prob_old_2d, logger_entropy_2d, logger_action_mean_2d, logger_action_std_2d, logger_action_2d
     
     def data_collection(self, id ,seed, share_memory_actor):
         print(f"Process {id} : Started collecting data")
@@ -113,9 +106,6 @@ class PPOAgent:
         # 一連のエピソードデータを格納するリスト
         trajectory = []
 
-        # 1エピソード分のステップ数
-        total_steps = 0
-
         # ログ用のリストを作成
         logger_reward = []
         logger_baseline_reward = []
@@ -129,62 +119,69 @@ class PPOAgent:
         logger_pheromone_left_value = []
         logger_pheromone_right_value = []
         logger_step_count = []
+
         collect_action_flag = True
         try:
             while True:
                 state = env.reset(seed=random.randint(0,100000))
-                # print("reset_state", state)
-                # print(f"Process {id} : Started collecting data")
-                # print("state", state)
-                done = False
-                # 1エピソードを格納するリスト
-                episode_data = []
-                total_reward = 0
-                total_baseline_reward = 0
-                total_steps = 0
 
-                while not done:
-                    collect_step_count += 1
-                    total_steps += 1
+                done = [False] * 2
+                # 1エピソードを格納するリスト
+                episode_data = [[] for _ in range(2)]
+                total_reward = [0] * 2
+                total_baseline_reward = [0] * 2
+                total_steps = [0] * 2
+
+                while not (done[0] and done[1]):
                     action, log_prob_old, logger_entropy, logger_action_mean, logger_action_std, logger_action = self.get_action(id, state, share_memory_actor)
 
-                    next_state, reward, terminated, baseline_reward, info = env.step([(action[0]+1.0)*0.1,action[1]])
+                    next_state, reward, terminated, baseline_reward, info = env.step(action)
                     
-                    total_reward += reward
-                    total_baseline_reward += baseline_reward
-                    if terminated:
-                        done = 1
+                    for i in range(len(next_state)):
+                        if next_state[i] is None:
+                            state[i] = [0] * 13
+                            continue
 
-                    episode_data.append((state, action, log_prob_old, reward, next_state, done))
-                    state = next_state
-                    # print("nextstate", state)
+                        total_steps[i] += 1
+                        total_reward[i] += reward[i]
+                        total_baseline_reward[i] += baseline_reward[i]
+
+                        episode_data[i].append((state[i], action[i], log_prob_old[i], reward[i], next_state[i], terminated[i]))
+                        collect_step_count += 1
+                    
+                        state[i] = next_state[i]
 
 
-                    logger_entropies.append(logger_entropy)
-                    if id == 0 and collect_action_flag:
-                        logger_action_means.append(logger_action_mean)
-                        # print("logger_action_mean", logger_action_mean)
-                        # print("logger_action_means", logger_action_means)
-                        logger_action_stds.append(logger_action_std)
-                        logger_actions.append(logger_action)
-                        logger_angle_to_goal.append(info["angle_to_goal"])
-                        logger_pheromone_average_value.append(info["pheromone_mean"])
-                        logger_pheromone_value.append(info["pheromone_value"])
-                        logger_pheromone_left_value.append(info["pheromone_left_value"])
-                        logger_pheromone_right_value.append(info["pheromone_right_value"])
                         
+                        # アクション関係のログを取る
+                        logger_entropies.append(logger_entropy[i].mean())
+                        if id == 0 and collect_action_flag:
+                            # TODO actionのログ
 
-
-                print(f"HERO_{id} Reward : {total_reward}, Step : {total_steps}")
-                if total_steps > 1:
-                    trajectory.append(episode_data)
-                    logger_reward.append(total_reward)
-                    logger_baseline_reward.append(total_baseline_reward)
-                    logger_step_count.append((info["done_category"],total_steps))
+                            logger_action_means.append(logger_action_mean[0])
+                            logger_action_stds.append(logger_action_std[0])
+                            logger_actions.append(logger_action[0])
+                            logger_angle_to_goal.append(info[0]["angle_to_goal"])
+                            logger_pheromone_average_value.append(info[0]["pheromone_mean"])
+                            logger_pheromone_value.append(info[0]["pheromone_value"])
+                            logger_pheromone_left_value.append(info[0]["pheromone_left_value"])
+                            logger_pheromone_right_value.append(info[0]["pheromone_right_value"])
+                        
+                        # ループの終了判定. すべてのエージェントが終了したら終了
+                        if terminated[i] is True:
+                            done[i] = True 
+                            if i == 0:
+                                collect_action_flag = False                       
+                        
+                            print(f"HERO_{id * 2 + i} Reward : {total_reward[i]}, Step : {total_steps[i]}")
+                            if total_steps[i] > 1:
+                                trajectory.append(episode_data[i])
+                                logger_reward.append(total_reward[i])
+                                logger_baseline_reward.append(total_baseline_reward[i])
+                                logger_step_count.append((info[i]["done_category"],total_steps[i]))
                 
                 if collect_step_count >= self.collect_step:
                     break
-                collect_action_flag = False
             # print(f"Finishing : Process {id} finished collecting data")
             env.shutdown()
             print(f"Process {id} is Finished")
