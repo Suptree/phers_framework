@@ -195,7 +195,7 @@ class Logger:
         plt.title("Pheromone Average Value")
         plt.xlabel("Step")
         plt.ylabel("Pheromone Average Value")
-        plt.ylim(-0.1, 1.1)
+        # plt.ylim(-0.1, 1.1)
         plt.legend(loc='upper left')
         plt.grid(True)
 
@@ -206,7 +206,7 @@ class Logger:
         plt.title("Pheromone Left and Right Average Value")
         plt.xlabel("Step")
         plt.ylabel("Pheromone Average Value")
-        plt.ylim(-0.1, 1.1)
+        # plt.ylim(-0.1, 1.1)
         plt.legend(loc='upper left')
         plt.grid(True)
 
@@ -216,7 +216,7 @@ class Logger:
         plt.title("Pheromone Right - Left")
         plt.xlabel("Step")
         plt.ylabel("Pheromone Right - Left")
-        plt.ylim(-1.1, 1.1)
+        # plt.ylim(-1.1, 1.1)
         plt.legend(loc='upper left')
         plt.grid(True)
 

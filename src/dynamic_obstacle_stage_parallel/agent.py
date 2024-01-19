@@ -155,7 +155,7 @@ class PPOAgent:
                         
                         # アクション関係のログを取る
                         logger_entropies.append(logger_entropy[i].mean())
-                        if id == 0 and collect_action_flag:
+                        if id == 0 and i == 0 and collect_action_flag:
                             # TODO actionのログ
 
                             logger_action_means.append(logger_action_mean[0])

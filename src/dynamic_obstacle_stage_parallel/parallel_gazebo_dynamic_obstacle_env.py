@@ -125,7 +125,7 @@ class GazeboEnvironment:
         # ロボットに速度を設定
         ## 終了したロボットのアクションは停止
         for i in range(self.robot_num):
-            if self.done[i]: # 終了したロボットのアクションはない
+            if self.done[i]: # 終了したロボットのアクションは考慮しない
                 continue
             v, w = action[i]
             
@@ -141,10 +141,10 @@ class GazeboEnvironment:
             twist.angular = Vector3(x=0, y=0, z=w)
             self.cmd_vel_pub[i].publish(twist)
 
-            # pheromone_injection = PheromoneInjection()
-            # pheromone_injection.robot_id = self.robot_id[i]
-            # pheromone_injection.radius = 0.3
-            # self.injection_pheromone_pub.publish(pheromone_injection)
+            pheromone_injection = PheromoneInjection()
+            pheromone_injection.robot_id = self.robot_id[i]
+            pheromone_injection.radius = 0.3
+            self.injection_pheromone_pub.publish(pheromone_injection)
 
         rospy.sleep(0.1)
 
@@ -195,13 +195,13 @@ class GazeboEnvironment:
             # ロボットごとの終了判定
             self.done[i] = self.is_collided[i] or self.is_goal[i] or self.is_timeout[i]
 
-
             if self.is_goal[i]:
                 print(f"\033[1;36m[{self.robot_name[i]}]\033[0m : \033[32m///////   GOAL    ///////\033[0m")
             elif self.is_collided[i]:
                 print(f"\033[1;36m[{self.robot_name[i]}]\033[0m : \033[38;5;214m/////// COLLISION ///////\033[0m")
 
-            # TODO : INFOの実装
+            # INFOの実装
+            ## タスク終了したときの情報をInfoに格納
             if self.done[i]:
 
                 task_time = rospy.get_time() - self.reset_timer
@@ -224,7 +224,7 @@ class GazeboEnvironment:
                         "pheromone_left_value" : (next_state_pheromone_value[0] + next_state_pheromone_value[3] + next_state_pheromone_value[6])/3.0,
                         "pheromone_right_value" : (next_state_pheromone_value[2] + next_state_pheromone_value[5] + next_state_pheromone_value[8])/3.0,
                 }
-                # 終了したとき、停止
+            # 終了したとき、停止
             if self.done[i]:
                 twist = Twist()
                 twist.linear = Vector3(x=0, y=0, z=0)
@@ -258,7 +258,7 @@ class GazeboEnvironment:
             r_d = wd_n * goal_to_distance_diff
         r_w = Rw if abs(next_state_robot_angular_velocity_z) > w_m else 0  # angular velocity penalty
         r_t = Rt
-        reward = r_g + r_c + r_d + r_w + r_t
+        reward = r_g + r_c + r_d + r_w
         baseline_reward = r_g + r_c + r_d + r_w
 
         return reward, baseline_reward
@@ -324,11 +324,11 @@ class GazeboEnvironment:
         twist = Twist()
         twist.linear = Vector3(x=0, y=0, z=0)
         twist.angular = Vector3(x=0, y=0, z=0)
-        try:
-            for i in range(self.robot_num):
+        for i in range(self.robot_num):
+            try:
                 self.cmd_vel_pub[i].publish(twist)
-        except rospy.ServiceException as e:
-            print("[def reset] : {0}".format(e))
+            except rospy.ServiceException as e:
+                print("[def reset] : {0}".format(e))
         rospy.sleep(1.0)
 
 
@@ -337,7 +337,6 @@ class GazeboEnvironment:
 
         # ロボットの位置リセット
         self.set_initialize_robots()
-        self.respawn_robots()
 
         # ロボットの色をリセット
         self.set_initialize_robots_color()
@@ -348,14 +347,16 @@ class GazeboEnvironment:
         # ゴールの初期位置を設定
         self.set_goals()
 
-        # 新しいゴールマーカーを設定
-        self.set_goal_marker()
-
 
         # フェロモンマップをリセット
         self.reset_pheromone_pub.publish(EmptyMsg())
-        rospy.sleep(2.0)
+        rospy.sleep(3.0)
         
+        # マーカーを削除
+        self.delete_all_markers()
+        
+        # 新しいゴールマーカーを設定
+        self.set_goal_marker()
         # フラグのリセット
         self.is_collided = [False] * self.robot_num
         self.is_goal = [False] * self.robot_num
@@ -394,7 +395,6 @@ class GazeboEnvironment:
         return self.state
 
 
-
     # 完了
     def set_goals(self):
         for i in range(self.robot_num):
@@ -405,16 +405,17 @@ class GazeboEnvironment:
     
     # 完了
     def set_initialize_robots(self):
+        initial_position = [None] * self.robot_num
         robot_r = 0.8  # 半径 0.8 の円
 
         # 最初のロボットの位置をランダムに選択
         angle = 2.0 * math.pi * random.random()
         x1 = robot_r * math.cos(angle) + self.origin_x
         y1 = robot_r * math.sin(angle) + self.origin_y
-        self.robot_position[0] = Vector3(x=x1, y=y1, z=0)
+        initial_position[0] = Vector3(x=x1, y=y1, z=0)
 
         # 二番目のロボットの位置を選ぶ
-        min_distance = 0.3  # 最小距離 (フェロモン半径)
+        min_distance = 0.4  # 最小距離 (フェロモン半径)
         while True:
             angle = 2.0 * math.pi * random.random()
             x2 = robot_r * math.cos(angle) + self.origin_x
@@ -425,15 +426,13 @@ class GazeboEnvironment:
             if distance >= min_distance:
                 break  # 条件を満たした場合はループを抜ける
 
-        self.robot_position[1] = Vector3(x=x2, y=y2, z=0)
+        initial_position[1] = Vector3(x=x2, y=y2, z=0)
 
-    # 完了
-    def respawn_robots(self):
         for i in range(self.robot_num):
             state_msg = ModelState()
             state_msg.model_name = self.robot_name[i]
-            state_msg.pose.position.x = self.robot_position[i].x
-            state_msg.pose.position.y = self.robot_position[i].y
+            state_msg.pose.position.x = initial_position[i].x
+            state_msg.pose.position.y = initial_position[i].y
             state_msg.pose.position.z = 0.2395
 
             # ランダムな角度をラジアンで生成
