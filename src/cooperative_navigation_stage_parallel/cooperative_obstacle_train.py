@@ -33,7 +33,7 @@ def main():
         
     set_seeds(seed_value)
 
-    agent = PPOAgent(env_name="Parallel-Cooperative-Obstacle",
+    agent = PPOAgent(env_name="Parallel-Cooperative-IR-Navigation",
                     n_iteration=total_iterations, 
                     n_states=12, # IR only 
                     action_bounds=[-1, 1], 

@@ -4,7 +4,7 @@ from logger import Logger
 from datetime import datetime
 import torch
 import torch.nn as nn
-import parallel_gazebo_cooperative_ir_obstacle_env as gazebo_env
+import parallel_gazebo_cooperative_ir_navigation_env as gazebo_env
 
 import numpy as np
 import torch.optim as optim
