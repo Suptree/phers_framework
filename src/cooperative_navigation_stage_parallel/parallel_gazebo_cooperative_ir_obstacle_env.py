@@ -591,7 +591,6 @@ class GazeboEnvironment:
 
 
     def laser_callback(self, data, robot_id):
-        
         angles = [math.pi/4, 0, -math.pi/4, math.pi/2, -math.pi/2, 3*math.pi/4, math.pi, -3*math.pi/4]
         angle_range = 22.5 * (math.pi / 180)  # ±22.5度をラジアンに変換
 
@@ -600,21 +599,22 @@ class GazeboEnvironment:
             sector_start = base_angle - angle_range
             sector_end = base_angle + angle_range
             distances = self.get_sector_distances(data, sector_start, sector_end)
-            avg_distance = sum(distances) / len(distances)
+            if distances:  # データが存在する場合のみ平均を計算
+                avg_distance = sum(distances) / len(distances)
+            else:
+                avg_distance = 0.3  # すべてのデータが無限大の場合は0.3メートルとする
             avg_distances.append(avg_distance)
 
         self.laser_value[robot_id] = avg_distances
 
 
     def get_sector_distances(self, data, start_angle, end_angle):
-        # スキャンデータからセクターの距離を抽出
         num_points = len(data.ranges)
         distances = []
         for i in range(num_points):
             current_angle = data.angle_min + i * data.angle_increment
             if start_angle <= current_angle <= end_angle or start_angle <= current_angle + 2 * math.pi <= end_angle:
                 distance = data.ranges[i]
-                if distance == float('inf'):
-                    distance = 0
-                distances.append(distance)
+                if distance != float('inf'):  # 無限大のデータは除外
+                    distances.append(distance)
         return distances
