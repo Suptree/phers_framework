@@ -539,14 +539,13 @@ class GazeboEnvironment:
         # マーカーをパブリッシュ
         self.marker_pub.publish(delete_marker)
 
-    def stop_robot(self):
+    def stop_robot(self, robot_index):
         # ロボットの速度を停止
         twist = Twist()
         twist.linear = Vector3(x=0, y=0, z=0)
         twist.angular = Vector3(x=0, y=0, z=0)
         try:
-            for i in range(self.robot_num):
-                self.cmd_vel_pub[i].publish(twist)
+            self.cmd_vel_pub[robot_index].publish(twist)
         except rospy.ServiceException as e:
             print("[def stop_robot]: {0}".format(e))
 
