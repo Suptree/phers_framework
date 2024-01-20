@@ -591,6 +591,7 @@ class GazeboEnvironment:
 
 
     def laser_callback(self, data, robot_id):
+        
         angles = [math.pi/4, 0, -math.pi/4, math.pi/2, -math.pi/2, 3*math.pi/4, math.pi, -3*math.pi/4]
         angle_range = 22.5 * (math.pi / 180)  # ±22.5度をラジアンに変換
 
@@ -604,8 +605,6 @@ class GazeboEnvironment:
 
         self.laser_value[robot_id] = avg_distances
 
-        # 結果の表示（デバッグ用）
-        print("Average distances for each sector:", avg_distances)
 
     def get_sector_distances(self, data, start_angle, end_angle):
         # スキャンデータからセクターの距離を抽出
