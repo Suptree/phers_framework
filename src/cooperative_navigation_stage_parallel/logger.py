@@ -407,3 +407,5 @@ class Logger:
         self.pheromone_average_history = []
         self.pheromone_left_history = []
         self.pheromone_right_history = []
+        self.ir_left_history = []
+        self.ir_right_history = []

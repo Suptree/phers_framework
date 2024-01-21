@@ -47,7 +47,7 @@ def main():
 
     agent = PPOAgent(env_name="Evaluate-Cooperative-Obstacle",
                     n_iteration=total_run, 
-                    n_states=13, 
+                    n_states=12, 
                     action_bounds=[-1, 1], 
                     n_actions=2, # 線形速度と角速度
                     actor_lr=3e-4, 
@@ -91,7 +91,7 @@ def main():
 
             for i in range(len(next_state)):
                 if next_state[i] is None:
-                    state[i] = [0] * 13
+                    state[i] = [0] * agent.n_states
                     continue
 
                 total_steps[i] += 1
@@ -104,6 +104,8 @@ def main():
                     agent.logger.pheromone_average_history.append(info[i]["pheromone_mean"])
                     agent.logger.pheromone_left_history.append(info[i]["pheromone_left_value"])
                     agent.logger.pheromone_right_history.append(info[i]["pheromone_right_value"])
+                    agent.logger.ir_left_history.append(info[i]["ir_left_value"])
+                    agent.logger.ir_right_history.append(info[i]["ir_right_value"])
                     
 
                 if terminated[i]:

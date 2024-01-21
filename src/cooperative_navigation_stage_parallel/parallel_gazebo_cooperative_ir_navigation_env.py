@@ -660,7 +660,7 @@ class GazeboEnvironment:
 
         self.laser_value[robot_id] = avg_distances
         # robot_nameとそれに対応したlaser_valueを表示
-        print(f"{self.robot_name[robot_id]} : {self.laser_value[robot_id]}")
+        # print(f"{self.robot_name[robot_id]} : {self.laser_value[robot_id]}")
 
 
     def get_sector_distances(self, data, start_angle, end_angle):
