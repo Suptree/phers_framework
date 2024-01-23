@@ -64,19 +64,6 @@ def main():
     share_memory_actor = agent.create_actor_copy()
     share_memory_actor.share_memory()
 
-    if normalized_flag == True:
-        with mp.Pool(processes=num_env) as pool:
-            tasks = [(i, agent.iteration*num_env + i, share_memory_actor) for i in range(num_env)]
-            results = pool.starmap(agent.data_collection, tasks)
-            pool.close()
-            pool.terminate()
-        
-        print("Parallel data collection finished")
-        for result in results: 
-            if result[0] is None:
-                continue
-            episode_data, _ = result
-            agent.update_state_normalization(episode_data)
                 
 
 

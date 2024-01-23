@@ -42,9 +42,9 @@ class PPOAgent:
         self.device = device # CPUかGPUか
 
         # 標準化のための変数
-        self.state_mean = np.zeros(self.n_states)
-        self.state_std = np.ones(self.n_states)
-        self.state_count = 0
+        # self.state_mean = np.zeros(self.n_states)
+        # self.state_std = np.ones(self.n_states)
+        # self.state_count = 0
 
 
         self.iteration = 0 # 現在のイテレーション数
@@ -132,6 +132,8 @@ class PPOAgent:
         try:
             while True:
                 state = env.reset(seed=random.randint(0,100000))
+                if id == 0:
+                    print("initial state", state)
                 
                 # 1エピソードごとに格納するリスト
                 episode_data = [[] for _ in range(env.robot_num)]
@@ -141,21 +143,11 @@ class PPOAgent:
                 total_steps = [0] * env.robot_num
 
                 while not all(done): # すべてのエージェントが終了するまで
-                    # stateの標準化処理を行う
-                    state = (state - self.state_mean) / self.state_std
-                    # if id == 0:
-                    #     print("normalized_state", state)
                     # NNから行動を獲得
                     action, log_prob_old, logger_dict = self.get_action(id, state, share_memory_actor, logger_dict)
 
                     # 環境に行動を入力し、次の状態、報酬、終了判定などを取得
                     next_state, reward, terminated, baseline_reward, info = env.step(action)
-                    if id == 0:
-                        print("next_state", next_state)
-                    # 次の状態を標準化
-                    normalized_next_state = (next_state - self.state_mean) / self.state_std
-                    if id == 0:
-                        print("normalized_next_state", normalized_next_state)
                     # ロボットごとに処理
                     for i in range(env.robot_num):
                         if done[i] is True:
@@ -168,7 +160,7 @@ class PPOAgent:
                         total_baseline_reward[i] += baseline_reward[i] # 1エピソードのベースライン報酬をカウント
 
                         # 1ステップのデータをエピソードデータに格納
-                        episode_data[i].append((state[i], action[i], log_prob_old[i], reward[i], normalized_next_state[i], terminated[i]))
+                        episode_data[i].append((state[i], action[i], log_prob_old[i], reward[i], next_state[i], terminated[i]))
 
                         # データ収集のステップ数を+1 
                         # 複数のロボット共通でカウント

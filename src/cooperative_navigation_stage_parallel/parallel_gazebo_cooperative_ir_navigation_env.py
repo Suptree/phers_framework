@@ -28,8 +28,11 @@ class GazeboEnvironment:
     def __init__(self, id):
         self.id = id
 
+        # 固定パラメータ
         self.robot_num = 2
         self.robot_radius = 0.04408
+        self.max_linear_velocity = 0.2
+        self.max_angular_velocity = 1.0
 
 
         # 原点座標
@@ -67,6 +70,7 @@ class GazeboEnvironment:
         self.goal_pos_x = [None] * self.robot_num
         self.goal_pos_y = [None] * self.robot_num
         self.prev_distance_to_goal = [None] * self.robot_num
+        self.max_distance_to_goal = [None] * self.robot_num
 
         # 静的障害物の位置
         self.obstacle_num = 4
@@ -174,7 +178,6 @@ class GazeboEnvironment:
             # pheromone_injection.robot_id = self.robot_id[i]
             # pheromone_injection.radius = 0.3
             # self.injection_pheromone_pub.publish(pheromone_injection)
-
         rospy.sleep(0.1)
 
 
@@ -271,6 +274,7 @@ class GazeboEnvironment:
             # 状態の更新
             self.prev_distance_to_goal[i] = next_state_distance_to_goal
             self.state[i] = list(next_state_laser_value) + [next_state_distance_to_goal, next_state_angle_to_goal, next_state_robot_linear_velocity_x, next_state_robot_angular_velocity_z]
+            self.state[i] = self.normalize_state(self.state[i], i)
         
         return self.state, reward, self.done, baseline_reward, info
 
@@ -327,6 +331,47 @@ class GazeboEnvironment:
         # print(f"\033[1;36m[{self.robot_name[i]}]\033[0m : self.is_goal: {self.is_goal[i]}, self.is_collided: {self.is_collided[i]}, self.is_timeout: {self.is_timeout[i]}")
         return self.pheromone_value[i],self.laser_value[i], next_state_distance_to_goal, next_state_angle_to_goal, self.robot_linear_velocity[i].x, self.robot_angular_velocity[i].z
     
+    def normalize_state(self, state, robot_index):
+        """
+        各状態を0から1の範囲に正規化する関数。
+
+        Args:
+            state (list): 正規化する状態のリスト。
+            max_distance_to_goal (float): ゴールまでの最大距離。
+            max_linear_velocity (float): 線形速度の最大値。
+            max_angular_velocity (float): 角速度の最大値。
+
+        Returns:
+            list: 正規化された状態のリスト。
+        """
+        normalized_state = []
+
+
+
+        # IRセンサー値の正規化
+        for i in range(8): # 先頭の8つの値はIRセンサー値
+            normalized_state.append(state[i] / 0.3)
+
+        # ゴールまでの距離の正規化
+        normalized_state.append(state[8] / self.max_distance_to_goal[robot_index])
+        if normalized_state[-1] > 1.0:
+            normalized_state[-1] = 1.0
+
+        # ゴールまでの角度の正規化
+        normalized_angle_to_goal = (state[9] + math.pi) / (2 * math.pi)
+        normalized_state.append(normalized_angle_to_goal)
+
+        # 線形速度の正規化
+        normalized_linear_velocity = state[10] / self.max_linear_velocity
+        # print("state[10]: ", state[10])
+        
+        normalized_state.append(normalized_linear_velocity)
+
+        # 角速度の正規化
+        normalized_angular_velocity = (state[11] + self.max_angular_velocity) / (2.0 * self.max_angular_velocity)
+        normalized_state.append(normalized_angular_velocity)
+
+        return normalized_state
     
     # ゴールに到達したかどうか
     def check_goal(self, self_index):
@@ -391,7 +436,7 @@ class GazeboEnvironment:
         self.set_initialize_robots_color()
 
         ## ロボットの位置がリセットされるまで待機
-        rospy.sleep(1.0)
+        rospy.sleep(3.0)
 
         # ゴールの初期位置を設定
         self.set_goals()
@@ -459,6 +504,7 @@ class GazeboEnvironment:
             self.angle_to_goal[i] = angle_to_goal
 
             self.state[i] = list(self.laser_value[i]) + [self.distance_to_goal[i], self.angle_to_goal[i], self.robot_linear_velocity[i].x, self.robot_angular_velocity[i].z]
+            self.state[i] = self.normalize_state(self.state[i], i)
         return self.state
 
 
@@ -469,6 +515,10 @@ class GazeboEnvironment:
             other_robot_index = (i + 1) % self.robot_num  # 他のロボットのインデックスを取得
             self.goal_pos_x[i] = self.robot_position[other_robot_index].x
             self.goal_pos_y[i] = self.robot_position[other_robot_index].y
+
+            # ロボットとゴールの距離の最大値を設定
+            self.max_distance_to_goal[i] = math.sqrt((self.robot_position[i].x - self.goal_pos_x[i])**2
+                                    + (self.robot_position[i].y - self.goal_pos_y[i])**2)
     
     # 完了
     def set_initialize_robots(self):
@@ -653,8 +703,9 @@ class GazeboEnvironment:
             distances = self.get_sector_distances(data, sector_start, sector_end)
             if distances:  # データが存在する場合のみ平均を計算
                 avg_distance = sum(distances) / len(distances)
+                avg_distance = 3.0 - avg_distance  # 距離が近いほど大きな値になるようにする
             else:
-                avg_distance = 0.3  # すべてのデータが無限大の場合は0.3メートルとする
+                avg_distance = 0.0  # すべてのデータが無限大の場合は0.3メートルとする
             avg_distances.append(avg_distance)
 
         self.laser_value[robot_id] = avg_distances
