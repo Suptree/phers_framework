@@ -10,7 +10,7 @@ import torch.multiprocessing as mp
 from torch.multiprocessing import Manager
 import signal
 import sys
-import parallel_gazebo_cooperative_ir_obstacle_env as gazebo_env
+import parallel_gazebo_cooperative_ir_navigation_env as gazebo_env
 import csv  # CSVモジュールをインポート
 # GPUが使える場合はGPUを使う
 from datetime import datetime
@@ -45,7 +45,7 @@ def main():
 
     # 引数からモデルのパスを取得
 
-    agent = PPOAgent(env_name="Evaluate-Cooperative-Obstacle",
+    agent = PPOAgent(env_name="Evaluate-Cooperative-IR-Navigation",
                     n_iteration=total_run, 
                     n_states=12, 
                     action_bounds=[-1, 1], 
@@ -100,8 +100,8 @@ def main():
                 state[i] = next_state[i]
                 if i == 0:
                     logger_action_means.append(action[i])
-                    agent.logger.angle_to_goal_history.append(info[i]["angle_to_goal"])
-                    agent.logger.pheromone_average_history.append(info[i]["pheromone_mean"])
+                    agent.logger.angle_to_goals_history.append(info[i]["angle_to_goal"])
+                    agent.logger.pheromone_mean_history.append(info[i]["pheromone_mean"])
                     agent.logger.pheromone_left_history.append(info[i]["pheromone_left_value"])
                     agent.logger.pheromone_right_history.append(info[i]["pheromone_right_value"])
                     agent.logger.ir_left_history.append(info[i]["ir_left_value"])
@@ -132,10 +132,10 @@ def main():
             # 結果をリストに追加
             results.append([run, total_steps[i], task_time[i], total_reward[i], done_category[i]])
     # CSVファイルに結果を書き出す
-    dir_name = f"./ppo_Evaluate-Copperative-Obstacle/{agent.start_time}"
+    dir_name = f"./ppo_Evaluate-Cooperative-IR-Navigation/{agent.start_time}"
     # ディレクトリを作成
     os.makedirs(dir_name, exist_ok=True)
-    filename = f'{dir_name}/cooperative_obstacle_results.csv'
+    filename = f'{dir_name}/cooperative_ir_navigation+_results.csv'
     with open(filename, mode='w', newline='') as file:
         writer = csv.writer(file)
         # ヘッダーを書き込む

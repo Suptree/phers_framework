@@ -33,6 +33,8 @@ def main():
         
     set_seeds(seed_value)
 
+    normalized_flag = True
+
     agent = PPOAgent(env_name="Parallel-Cooperative-IR-Navigation",
                     n_iteration=total_iterations, 
                     n_states=12, # IR only 
@@ -53,21 +55,17 @@ def main():
     agent.save_setting_config()
     # 途中から始める場合、以下のコメントアウトを外す
     # load_path = \
-    # "/home/nishilab/catkin_ws/src/phers_framework/src/static_obstacle_stage_parallel/ppo_Parallel-Static-Obstacle/2024-01-15_18-27-34"
-    # load_iteration = 50
+    # "/home/nishilab/catkin_ws/src/phers_framework/src/cooperative_navigation_stage_parallel/ppo_Parallel-Cooperative-IR-Navigation/2024-01-21_20-01-39"
+    # load_iteration = 520
     # agent.load_weights(load_path + "/" + f"{load_iteration}" + "_weights.pth")
     # agent.logger.load_and_merge_csv_data(load_path+"/training_history")
-
+    # normalized_flag = False
     signal.signal(signal.SIGINT, exit)
+    share_memory_actor = agent.create_actor_copy()
+    share_memory_actor.share_memory()
 
-    for _ in range(agent.iteration, total_iterations):
-        
-        print("+++++++++++++++++++  iteration: {}++++++++++++++".format(agent.iteration))
-        share_memory_actor = agent.create_actor_copy()
-        share_memory_actor.share_memory()
-        
+    if normalized_flag == True:
         with mp.Pool(processes=num_env) as pool:
-            # id と seed値 を渡す. idは偶数 (0, 2, 4)
             tasks = [(i, agent.iteration*num_env + i, share_memory_actor) for i in range(num_env)]
             results = pool.starmap(agent.data_collection, tasks)
             pool.close()
@@ -77,43 +75,49 @@ def main():
         for result in results: 
             if result[0] is None:
                 continue
-            episode_data, rewards, baseline_rewards, entoripies, action_means, action_stds, action_samples, angle_to_goals, pheromone_average_value, pheromone_left_value, pheromone_right_value, step_counts, ir_left_value, ir_right_value = result
-            if len(action_means) != 0:
-                action_T_means = np.array(action_means).T.tolist()
-                action_T_stds = np.array(action_stds).T.tolist()
-                action_T_samples = np.array(action_samples).T.tolist()
-                for i in range(agent.n_actions):
-                    for action_mean in action_T_means[i]:
-                        # print(action_mean)
-                        agent.logger.action_means_history[i].append(action_mean)
-                    for action_std in action_T_stds[i]:
-                        agent.logger.action_stds_history[i].append(action_std)
-                    for action_sample in action_T_samples[i]:
-                        agent.logger.action_samples_history[i].append(action_sample)
-                for angle_to_goal in angle_to_goals:
-                    agent.logger.angle_to_goal_history.append(angle_to_goal)
-                for pheromone_average in pheromone_average_value:
-                    agent.logger.pheromone_average_history.append(pheromone_average)
-                for pheromone_left in pheromone_left_value:
-                    agent.logger.pheromone_left_history.append(pheromone_left)
-                for pheromone_right in pheromone_right_value:
-                    agent.logger.pheromone_right_history.append(pheromone_right)
-                for ir_left in ir_left_value:
-                    agent.logger.ir_left_history.append(ir_left)
-                for ir_right in ir_right_value:
-                    agent.logger.ir_right_history.append(ir_right)
+            episode_data, _ = result
+            agent.update_state_normalization(episode_data)
+                
+
+
+    for _ in range(agent.iteration, total_iterations):
+
+        
+        print("+++++++++++++++++++  iteration: {}++++++++++++++".format(agent.iteration))
+        share_memory_actor = agent.create_actor_copy()
+        share_memory_actor.share_memory()
+        
+        with mp.Pool(processes=num_env) as pool:
+            tasks = [(i, agent.iteration*num_env + i, share_memory_actor) for i in range(num_env)]
+            results = pool.starmap(agent.data_collection, tasks)
+            pool.close()
+            pool.terminate()
+        
+        print("Parallel data collection finished")
+        for result in results: 
+            if result[0] is None:
+                continue
+            episode_data, logger_dict = result
+
+            # ログデータの処理
+            for key in logger_dict:
+                if key in ["action_means", "action_stds", "actions"]:
+                    action_data = np.array(logger_dict[key]).T.tolist()
+                    if len(action_data) == 0:
+                        continue
+                    for i in range(agent.n_actions):
+                        for action_value in action_data[i]:
+                            getattr(agent.logger, f"{key}_history")[i].append(action_value)
+                else:
+                    for value in logger_dict[key]:
+                        getattr(agent.logger, f"{key}_history").append(value)
+
+            # エピソードデータの処理
             for episode in episode_data:
                 agent.trajectory_buffer.add_trajectory(episode)
-            for reward in rewards:
-                agent.logger.reward_history.append(reward)
-            for baseline_reward in baseline_rewards:
-                agent.logger.baseline_reward_history.append(baseline_reward)
-            for entropy in entoripies:
-                agent.logger.entropy_history.append(entropy)
-            for step_count in step_counts:
-                agent.logger.step_count_history.append(step_count)
-            # print("action_means", action_means[0])
+                
 
+        
         # アドバンテージの計算
         agent.compute_advantages_and_add_to_buffer()
             

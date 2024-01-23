@@ -188,6 +188,7 @@ class GazeboEnvironment:
             # 終了したロボットの次の状態はない
             # return None Object.
             if self.done[i]:
+                self.state[i] = [0] * 12
                 continue
 
             # 次の状態を取得
@@ -314,7 +315,7 @@ class GazeboEnvironment:
             next_state_angle_to_goal += 2 * math.pi
         elif next_state_angle_to_goal > math.pi:
             next_state_angle_to_goal -= 2 * math.pi
-
+        # print(f"\033[1;36m[{self.robot_name[i]}]\033[0m : self.is_goal: {self.is_goal[i]}, self.is_collided: {self.is_collided[i]}, self.is_timeout: {self.is_timeout[i]}")
         # 衝突判定
         self.is_collided[i] = self.check_collision_to_obstacle(i)
 
@@ -323,7 +324,7 @@ class GazeboEnvironment:
 
         # タイムアウト判定
         self.is_timeout[i] = rospy.get_time() - self.reset_timer > 40.0
-
+        # print(f"\033[1;36m[{self.robot_name[i]}]\033[0m : self.is_goal: {self.is_goal[i]}, self.is_collided: {self.is_collided[i]}, self.is_timeout: {self.is_timeout[i]}")
         return self.pheromone_value[i],self.laser_value[i], next_state_distance_to_goal, next_state_angle_to_goal, self.robot_linear_velocity[i].x, self.robot_angular_velocity[i].z
     
     
@@ -348,13 +349,11 @@ class GazeboEnvironment:
             if distance_to_robot <= 2 * self.robot_radius:
                 return True
             
-        # ロボット同士の衝突を検出
-        for i in range(self.robot_num):
         # 障害物との衝突を検出
-            for obs in self.obstacle:
-                distance_to_obstacle = math.sqrt((self.robot_position[i].x - obs[0])**2 + (self.robot_position[i].y - obs[1])**2)
-                if distance_to_obstacle <= 0.04408 + 0.02:
-                    return True
+        for obs in self.obstacle:
+            distance_to_obstacle = math.sqrt((self.robot_position[self_index].x - obs[0])**2 + (self.robot_position[self_index].y - obs[1])**2)
+            if distance_to_obstacle <= 0.04408 + 0.02:
+                return True
 
         return False
     
@@ -753,7 +752,7 @@ class GazeboEnvironment:
                 self.notify_slack(f"[def add_static_obstacle]: {e}")
                 print("[def add_static_obstacle]: {0}".format(e))    
     def set_obstacle_marker(self):
-        if self.id == 0:
+        if self.id != 0:
             return
         i = self.robot_num # ゴールのマーカーの次のidから開始
         for obs in self.obstacle:

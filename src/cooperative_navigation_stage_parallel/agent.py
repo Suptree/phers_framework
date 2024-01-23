@@ -41,6 +41,12 @@ class PPOAgent:
         self.entropy_coefficient = entropy_coefficient # エントロピー項の係数
         self.device = device # CPUかGPUか
 
+        # 標準化のための変数
+        self.state_mean = np.zeros(self.n_states)
+        self.state_std = np.ones(self.n_states)
+        self.state_count = 0
+
+
         self.iteration = 0 # 現在のイテレーション数
 
         self.actor = Actor(n_states=self.n_states,n_actions=self.n_actions).to(self.device)
@@ -56,7 +62,7 @@ class PPOAgent:
         self.critic_scheduler = LambdaLR(self.actor_optimizer, lr_lambda=self.scheduler)
 
         self.logger = Logger(self.dir_name, self.n_actions)
-    def get_action(self, id, state, local_actor):
+    def get_action(self, id, state, local_actor, logger_dict):
         state = torch.tensor(state, dtype=torch.float32)
 
         with torch.no_grad():
@@ -65,6 +71,9 @@ class PPOAgent:
         # ガウス分布を作成
         action_distribution = torch.distributions.Normal(action_mean, action_std)
         logger_entropy = action_distribution.entropy().cpu().numpy()
+
+        # Logger
+        logger_dict["entropies"].append(action_distribution.entropy().cpu().numpy().mean())
        
         # ガウス分布から行動をサンプリング
         action = action_distribution.sample()
@@ -73,26 +82,21 @@ class PPOAgent:
         log_prob_old = action_distribution.log_prob(action)
 
 
-        # LOGGER - 新しいリスト構造を使用
+        # LOGGER 環境id=0のロボットのみ
         if id == 0 :
-            logger_action_mean = action_mean.cpu().numpy()
-            logger_action_std = action_std.cpu().numpy()
-            logger_action = action.cpu().numpy()
-        else:
-            logger_action_mean = None
-            logger_action_std = None
-            logger_action = None
+            logger_dict["action_means"].append(action_mean.cpu().numpy()[0])
+            logger_dict["action_stds"].append(action_std.cpu().numpy()[0])
+            logger_dict["actions"].append(action.cpu().numpy()[0])
 
-        action_2d = np.atleast_2d(action.cpu().numpy())
-        log_prob_old_2d = np.atleast_2d(log_prob_old.cpu().numpy())
-        logger_entropy_2d = np.atleast_2d(logger_entropy)
-        logger_action_mean_2d = np.atleast_2d(logger_action_mean)
-        logger_action_std_2d = np.atleast_2d(logger_action_std)
-        logger_action_2d = np.atleast_2d(logger_action)
-        return action_2d, log_prob_old_2d, logger_entropy_2d, logger_action_mean_2d, logger_action_std_2d, logger_action_2d
+        action_2d = np.atleast_2d(action.cpu().numpy()) # 2次元配列に変換
+        log_prob_old_2d = np.atleast_2d(log_prob_old.cpu().numpy()) # 2次元配列に変換
+        return action_2d, log_prob_old_2d, logger_dict
     
     def data_collection(self, id ,seed, share_memory_actor):
-        print(f"Process {id} : Started collecting data")
+        # print(f"Process {id} : Started collecting data")
+        # print("self.state_mean", self.state_mean)
+        # print("self.state_std", self.state_std)
+
         # 子プロセスで再度シード値を設定
         random.seed(seed)
         np.random.seed(seed)
@@ -106,70 +110,86 @@ class PPOAgent:
         # 一連のエピソードデータを格納するリスト
         trajectory = []
 
-        # ログ用のリストを作成
-        logger_reward = []
-        logger_baseline_reward = []
-        logger_entropies = []
-        logger_action_means = []
-        logger_action_stds = []
-        logger_actions = []
-        logger_angle_to_goal = []
-        logger_pheromone_average_value = []
-        logger_pheromone_value = []
-        logger_pheromone_left_value = []
-        logger_pheromone_right_value = []
-        logger_ir_left_value = []
-        logger_ir_right_value = []
-        logger_step_count = []
+        # logger dictionary
+        logger_dict = {
+            "total_rewards": [],
+            "total_baseline_rewards": [],
+            "entropies": [],
+            "action_means": [],
+            "action_stds": [],
+            "actions": [],
+            "angle_to_goals": [],
+            "pheromone_mean": [],
+            "pheromone": [],
+            "pheromone_left": [],
+            "pheromone_right": [],
+            "ir_left": [],
+            "ir_right": [],
+            "step_count": []
+        }
 
         collect_action_flag = True
         try:
             while True:
                 state = env.reset(seed=random.randint(0,100000))
+                
+                # 1エピソードごとに格納するリスト
+                episode_data = [[] for _ in range(env.robot_num)]
+                done = [False] * env.robot_num
+                total_reward = [0] * env.robot_num
+                total_baseline_reward = [0] * env.robot_num
+                total_steps = [0] * env.robot_num
 
-                done = [False] * 2
-                # 1エピソードを格納するリスト
-                episode_data = [[] for _ in range(2)]
-                total_reward = [0] * 2
-                total_baseline_reward = [0] * 2
-                total_steps = [0] * 2
+                while not all(done): # すべてのエージェントが終了するまで
+                    # stateの標準化処理を行う
+                    state = (state - self.state_mean) / self.state_std
+                    # if id == 0:
+                    #     print("normalized_state", state)
+                    # NNから行動を獲得
+                    action, log_prob_old, logger_dict = self.get_action(id, state, share_memory_actor, logger_dict)
 
-                while not (done[0] and done[1]):
-                    action, log_prob_old, logger_entropy, logger_action_mean, logger_action_std, logger_action = self.get_action(id, state, share_memory_actor)
-
+                    # 環境に行動を入力し、次の状態、報酬、終了判定などを取得
                     next_state, reward, terminated, baseline_reward, info = env.step(action)
-                    
-                    for i in range(len(next_state)):
-                        if next_state[i] is None:
+                    if id == 0:
+                        print("next_state", next_state)
+                    # 次の状態を標準化
+                    normalized_next_state = (next_state - self.state_mean) / self.state_std
+                    if id == 0:
+                        print("normalized_next_state", normalized_next_state)
+                    # ロボットごとに処理
+                    for i in range(env.robot_num):
+                        if done[i] is True:
+                            # dummy state
                             state[i] = [0] * self.n_states
                             continue
 
-                        total_steps[i] += 1
-                        total_reward[i] += reward[i]
-                        total_baseline_reward[i] += baseline_reward[i]
+                        total_steps[i] += 1 # 1エピソードのステップ数をカウント
+                        total_reward[i] += reward[i] # 1エピソードの報酬をカウント
+                        total_baseline_reward[i] += baseline_reward[i] # 1エピソードのベースライン報酬をカウント
 
-                        episode_data[i].append((state[i], action[i], log_prob_old[i], reward[i], next_state[i], terminated[i]))
+                        # 1ステップのデータをエピソードデータに格納
+                        episode_data[i].append((state[i], action[i], log_prob_old[i], reward[i], normalized_next_state[i], terminated[i]))
+
+                        # データ収集のステップ数を+1 
+                        # 複数のロボット共通でカウント
                         collect_step_count += 1
-                    
+
+                        # 状態を更新
                         state[i] = next_state[i]
 
 
-                        
-                        # アクション関係のログを取る
-                        logger_entropies.append(logger_entropy[i].mean())
+                        # LOGGER アクションのログは、環境id=0のロボットのみ
                         if id == 0 and i == 0 and collect_action_flag:
                             # TODO actionのログ
+                            logger_dict["angle_to_goals"].append(info[0]["angle_to_goal"])
+                            logger_dict["pheromone_mean"].append(info[0]["pheromone_mean"])
+                            logger_dict["pheromone"].append(info[0]["pheromone_value"])
+                            logger_dict["pheromone_left"].append(info[0]["pheromone_left_value"])
+                            logger_dict["pheromone_right"].append(info[0]["pheromone_right_value"])
+                            logger_dict["ir_left"].append(info[0]["ir_left_value"])
+                            logger_dict["ir_right"].append(info[0]["ir_right_value"])
+                            
 
-                            logger_action_means.append(logger_action_mean[0])
-                            logger_action_stds.append(logger_action_std[0])
-                            logger_actions.append(logger_action[0])
-                            logger_angle_to_goal.append(info[0]["angle_to_goal"])
-                            logger_pheromone_average_value.append(info[0]["pheromone_mean"])
-                            logger_pheromone_value.append(info[0]["pheromone_value"])
-                            logger_pheromone_left_value.append(info[0]["pheromone_left_value"])
-                            logger_pheromone_right_value.append(info[0]["pheromone_right_value"])
-                            logger_ir_left_value.append(info[0]["ir_left_value"])
-                            logger_ir_right_value.append(info[0]["ir_right_value"])
                         
                         # ループの終了判定. すべてのエージェントが終了したら終了
                         if terminated[i] is True:
@@ -180,35 +200,22 @@ class PPOAgent:
                             print(f"HERO_{id * 2 + i} Reward : {total_reward[i]}, Step : {total_steps[i]}")
                             if total_steps[i] > 1:
                                 trajectory.append(episode_data[i])
-                                logger_reward.append(total_reward[i])
-                                logger_baseline_reward.append(total_baseline_reward[i])
-                                logger_step_count.append((info[i]["done_category"],total_steps[i]))
-                                
+                                logger_dict["total_rewards"].append(total_reward[i])
+                                logger_dict["total_baseline_rewards"].append(total_baseline_reward[i])
+                                logger_dict["step_count"].append((info[i]["done_category"],total_steps[i]))
                 
+                # データ収集のステップ数が一定数を超えたら終了
                 if collect_step_count >= self.collect_step:
                     break
-            # print(f"Finishing : Process {id} finished collecting data")
+
             env.shutdown()
             print(f"Process {id} is Finished")
-            return (trajectory, 
-                    logger_reward, 
-                    logger_baseline_reward, 
-                    logger_entropies, 
-                    logger_action_means, 
-                    logger_action_stds, 
-                    logger_actions, 
-                    logger_angle_to_goal, 
-                    logger_pheromone_average_value, 
-                    logger_pheromone_left_value, 
-                    logger_pheromone_right_value,
-                    logger_step_count,
-                    logger_ir_left_value,
-                    logger_ir_right_value)
+            return (trajectory, logger_dict)
         except Exception as e:
             print(f"ERROR : Process {id} is Finished")
             print(e)
             env.shutdown()
-            return (None, None, None, None, None, None, None, None, None)
+            return (None, None)
         
     def compute_advantages_and_add_to_buffer(self):
         for trajectory in self.trajectory_buffer.buffer:
@@ -266,6 +273,34 @@ class PPOAgent:
         loss_fn = nn.MSELoss()
         loss = loss_fn(state_value, target)
         return loss
+    
+    def update_state_normalization(self, episode_data):
+        """
+        収集したエピソードデータから各状態の平均と標準偏差を計算し更新する。
+
+        Args:
+            episodes (list): 収集したエピソードデータのリスト。
+        """
+        # 状態の統計量を更新
+        for episode in episode_data:
+            for step in episode:
+                state, _, _, _, _, _ = step
+                self.update_state_normalization_online(state)
+
+        self.finalize_state_normalization()
+
+    def update_state_normalization_online(self, new_state):
+        self.state_count += 1
+        delta = new_state - self.state_mean
+        self.state_mean += delta / self.state_count
+        delta2 = new_state - self.state_mean
+        self.state_std += delta * delta2
+
+    def finalize_state_normalization(self):
+        if self.state_count > 1:
+            self.state_std = np.sqrt(self.state_std / (self.state_count - 1))
+        else:
+            self.state_std = np.ones(self.n_states)
     
     def optimize(self, actor_loss, critic_loss):
         self.actor_optimizer.zero_grad()

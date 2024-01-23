@@ -16,8 +16,8 @@ class Logger:
         os.makedirs(f"{self.dir_name}/training_history", exist_ok=True)
 
         ## 報酬ログ
-        self.reward_history = []
-        self.baseline_reward_history = []
+        self.total_rewards_history = []
+        self.total_baseline_rewards_history = []
         self.iteration_per_reward_average = []
         ## アクターとクリティックの損失ログ
         self.losses_actors = []
@@ -27,7 +27,7 @@ class Logger:
         self.advantage_mean_history = []
         self.advantage_variance_history = []
         ## エントロピーのログ
-        self.entropy_history = []
+        self.entropies_history = []
         self.entropy_mean_history = []
         ## 学習率のログ
         self.lr_actor_history = []
@@ -35,9 +35,10 @@ class Logger:
         ## アクションの平均と標準偏差のログ
         self.action_means_history = [[] for _ in range(n_actions)]
         self.action_stds_history = [[] for _ in range(n_actions)]
-        self.action_samples_history = [[] for _ in range(n_actions)]
-        self.angle_to_goal_history = []
-        self.pheromone_average_history = []
+        self.actions_history = [[] for _ in range(n_actions)]
+        self.angle_to_goals_history = []
+        self.pheromone_mean_history = []
+        self.pheromone_history = []
         self.pheromone_left_history = []
         self.pheromone_right_history = []
         self.ir_left_history = []
@@ -50,10 +51,10 @@ class Logger:
         # 累積報酬のプロット
         plt.subplot(3, 4, 1)
         reward_window_size = 10
-        plt.plot(self.reward_history, label="reward", color="green")
+        plt.plot(self.total_rewards_history, label="reward", color="green")
         plt.plot(
             self.compute_moving_average(
-                self.reward_history, window_size=reward_window_size
+                self.total_rewards_history, window_size=reward_window_size
             ),
             label="moving reward",
             color="red",
@@ -67,10 +68,10 @@ class Logger:
         # 累積報酬のプロット
         plt.subplot(3, 4, 2)
         reward_window_size = 10
-        plt.plot(self.baseline_reward_history, label="reward", color="green")
+        plt.plot(self.total_baseline_rewards_history, label="reward", color="green")
         plt.plot(
             self.compute_moving_average(
-                self.baseline_reward_history, window_size=reward_window_size
+                self.total_baseline_rewards_history, window_size=reward_window_size
             ),
             label="moving reward",
             color="red",
@@ -163,7 +164,7 @@ class Logger:
         for i in range(n_actions):
             # 平均とサンプルのグラフ
             plt.subplot(n_rows, n_cols, 2 * i + 1)
-            plt.scatter(range(len(self.action_samples_history[i])), self.action_samples_history[i], label="sample", color="lime")
+            plt.scatter(range(len(self.actions_history[i])), self.actions_history[i], label="sample", color="lime")
             plt.plot(self.action_means_history[i], label="mean", color="red")
             plt.title(f"Action {i} - Means and Samples")
             plt.xlabel("Step")
@@ -183,7 +184,7 @@ class Logger:
 
         # 角度の履歴のプロット
         plt.subplot(n_rows, n_cols, n_cols * n_rows - 5)  # 新しいサブプロット位置を設定
-        plt.plot(self.angle_to_goal_history, label="Angle to Goal", color="purple")
+        plt.plot(self.angle_to_goals_history, label="Angle to Goal", color="purple")
         plt.title("Robot Angle to Goal")
         plt.xlabel("Step")
         plt.ylabel("Angle (degrees)")
@@ -193,7 +194,7 @@ class Logger:
 
         # フェロモン平均値の履歴のプロット
         plt.subplot(n_rows, n_cols, n_cols * n_rows - 4)  # 新しいサブプロット位置を設定
-        plt.plot(self.pheromone_average_history, label="Pheromone Average Value", color="green")
+        plt.plot(self.pheromone_mean_history, label="Pheromone Average Value", color="green")
         plt.title("Pheromone Average Value")
         plt.xlabel("Step")
         plt.ylabel("Pheromone Average Value")
@@ -263,8 +264,8 @@ class Logger:
 
         # Episode Rewards のデータフレームを作成して保存
         rewards_df = pd.DataFrame({
-            "Episode Rewards": self.reward_history,
-            "Baseline Rewards": self.baseline_reward_history,
+            "Episode Rewards": self.total_rewards_history,
+            "Baseline Rewards": self.total_baseline_rewards_history,
         })
         self.save_dataframe_to_csv(rewards_df, rewards_filename)
 
@@ -348,11 +349,11 @@ class Logger:
         self.advantage_history = []
     def calucurate_entropy_mean(self):
         # エントロピーの平均を計算
-        entropy_mean = np.mean(self.entropy_history)
+        entropy_mean = np.mean(self.entropies_history)
 
         # ヒストリーリストに追加
         self.entropy_mean_history.append(entropy_mean)
-        self.entropy_history = []
+        self.entropies_history = []
 
     def load_and_merge_csv_data(self, dir_path):
         # 異なるデータカテゴリのファイル名を定義
@@ -365,8 +366,8 @@ class Logger:
         # Episode Rewards のデータを読み込んで統合
         if os.path.exists(rewards_filename):
             rewards_df = pd.read_csv(rewards_filename)
-            self.reward_history.extend(rewards_df["Episode Rewards"].dropna().tolist())
-            self.baseline_reward_history.extend(rewards_df["Baseline Rewards"].dropna().tolist())
+            self.total_rewards_history.extend(rewards_df["Episode Rewards"].dropna().tolist())
+            self.total_baseline_rewards_history.extend(rewards_df["Baseline Rewards"].dropna().tolist())
         else:
             print(f"{rewards_filename} does not exist.")
 
@@ -402,9 +403,9 @@ class Logger:
 
     def clear_action_logs(self):
         self.action_means_history = [[] for _ in range(len(self.action_means_history))]
-        self.action_samples_history = [[] for _ in range(len(self.action_samples_history))]
-        self.angle_to_goal_history = []
-        self.pheromone_average_history = []
+        self.actions_history = [[] for _ in range(len(self.actions_history))]
+        self.angle_to_goals_history = []
+        self.pheromone_mean_history = []
         self.pheromone_left_history = []
         self.pheromone_right_history = []
         self.ir_left_history = []
