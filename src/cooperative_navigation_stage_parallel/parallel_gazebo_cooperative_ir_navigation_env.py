@@ -352,8 +352,9 @@ class GazeboEnvironment:
         for i in range(8): # 先頭の8つの値はIRセンサー値
             normalized_state.append(state[i] / 0.3)
 
+        env_max_distance_to_goal = 8.0 * math.sqrt(2.0)
         # ゴールまでの距離の正規化
-        normalized_state.append(state[8] / self.max_distance_to_goal[robot_index])
+        normalized_state.append(state[8] / env_max_distance_to_goal)
         if normalized_state[-1] > 1.0:
             normalized_state[-1] = 1.0
 
