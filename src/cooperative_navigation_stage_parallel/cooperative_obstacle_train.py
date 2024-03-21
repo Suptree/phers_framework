@@ -55,14 +55,11 @@ def main():
     agent.save_setting_config()
     # 途中から始める場合、以下のコメントアウトを外す
     # load_path = \
-    # "/home/nishilab/catkin_ws/src/phers_framework/src/cooperative_navigation_stage_parallel/ppo_Parallel-Cooperative-IR-Navigation/2024-01-21_20-01-39"
-    # load_iteration = 520
+    # "/home/nishilab/catkin_ws/src/phers_framework/src/cooperative_navigation_stage_parallel/ppo_Parallel-Cooperative-IR-Navigation/2024-01-23_17-59-55"
+    # load_iteration = 640
     # agent.load_weights(load_path + "/" + f"{load_iteration}" + "_weights.pth")
     # agent.logger.load_and_merge_csv_data(load_path+"/training_history")
-    # normalized_flag = False
     signal.signal(signal.SIGINT, exit)
-    share_memory_actor = agent.create_actor_copy()
-    share_memory_actor.share_memory()
 
                 
 

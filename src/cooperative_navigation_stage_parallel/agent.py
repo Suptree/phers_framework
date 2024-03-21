@@ -62,7 +62,7 @@ class PPOAgent:
         self.critic_scheduler = LambdaLR(self.actor_optimizer, lr_lambda=self.scheduler)
 
         self.logger = Logger(self.dir_name, self.n_actions)
-    def get_action(self, id, state, local_actor, logger_dict):
+    def get_action(self, id, state, local_actor, logger_dict, collect_action_flag):
         state = torch.tensor(state, dtype=torch.float32)
 
         with torch.no_grad():
@@ -83,7 +83,7 @@ class PPOAgent:
 
 
         # LOGGER 環境id=0のロボットのみ
-        if id == 0 :
+        if id == 0 and  collect_action_flag is True:
             logger_dict["action_means"].append(action_mean.cpu().numpy()[0])
             logger_dict["action_stds"].append(action_std.cpu().numpy()[0])
             logger_dict["actions"].append(action.cpu().numpy()[0])
@@ -144,7 +144,7 @@ class PPOAgent:
 
                 while not all(done): # すべてのエージェントが終了するまで
                     # NNから行動を獲得
-                    action, log_prob_old, logger_dict = self.get_action(id, state, share_memory_actor, logger_dict)
+                    action, log_prob_old, logger_dict = self.get_action(id, state, share_memory_actor, logger_dict, collect_action_flag)
 
                     # 環境に行動を入力し、次の状態、報酬、終了判定などを取得
                     next_state, reward, terminated, baseline_reward, info = env.step(action)

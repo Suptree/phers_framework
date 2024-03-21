@@ -75,10 +75,10 @@ class GazeboEnvironment:
         # 静的障害物の位置
         self.obstacle_num = 4
         self.obstacle = [
-            (self.origin_x + 0.0,    self.origin_y + 0.4),
-            (self.origin_x + 0.0,    self.origin_y + (-0.4)),
-            (self.origin_x + 0.4,    self.origin_y + 0.0),
-            (self.origin_x + (-0.4), self.origin_y + 0.0)
+            # (self.origin_x + 0.0,    self.origin_y + 0.4),
+            # (self.origin_x + 0.0,    self.origin_y + (-0.4)),
+            # (self.origin_x + 0.4,    self.origin_y + 0.0),
+            # (self.origin_x + (-0.4), self.origin_y + 0.0)
         ]
         # 障害物のSDFファイルのパス
         obstacle_path = os.environ.get("STATIC_OBSTACLE_PATH")
@@ -179,6 +179,8 @@ class GazeboEnvironment:
             # pheromone_injection.radius = 0.3
             # self.injection_pheromone_pub.publish(pheromone_injection)
         rospy.sleep(0.1)
+        # if self.id == 0:
+        #     print("laser_value: ", self.laser_value[0])
 
 
         self.state = [None] * self.robot_num
@@ -281,15 +283,15 @@ class GazeboEnvironment:
 
     def calculate_rewards(self, robot_index, next_state_distance_to_goal,next_state_robot_angular_velocity_z):
         Rw = -1.0  # angular velocity penalty constant
-        Ra = 300.0  # goal reward constant
-        Rc = -300.0 # collision penalty constant
+        Ra = 30.0  # goal reward constant
+        Rc = -30.0 # collision penalty constant
         Rt = -0.1  # time penalty
         w_m = 0.8  # maximum allowable angular velocity
         wd_p = 4.0 # weight for positive distance
         wd_n = 6.0 # weight for negative distance
 
         # アクション後のロボットとゴールまでの距離の差分
-        goal_to_distance_diff = 100.0 * (self.prev_distance_to_goal[robot_index] - next_state_distance_to_goal)
+        goal_to_distance_diff = self.prev_distance_to_goal[robot_index] - next_state_distance_to_goal
         
         r_g = Ra if self.is_goal[robot_index] else 0 # goal reward
         r_c = Rc if self.is_collided[robot_index] else 0  # collision penalty
@@ -351,6 +353,9 @@ class GazeboEnvironment:
         # IRセンサー値の正規化
         for i in range(8): # 先頭の8つの値はIRセンサー値
             normalized_state.append(state[i] / 0.3)
+        # if self.id == 0:
+        #     print("laser_value: ", normalized_state)
+
 
         env_max_distance_to_goal = 8.0 * math.sqrt(2.0)
         # ゴールまでの距離の正規化
@@ -426,7 +431,7 @@ class GazeboEnvironment:
         # print("delete all markers")
 
         # 静的障害物を削除
-        self.delete_static_obstacle()
+        # self.delete_static_obstacle()
         # print("delete all static obstacles")
 
         # ロボットの位置リセット
@@ -448,15 +453,15 @@ class GazeboEnvironment:
         rospy.sleep(3.0)
         
         # 静的障害物の位置をランダムに設定
-        self.set_distance_range_random_static_obstacle()
+        # self.set_distance_range_random_static_obstacle()
         # print("reset all static obstacles position")
 
         # 静的障害物を追加
-        self.add_static_obstacle()
+        # self.add_static_obstacle()
         # print("add all static obstacles")
 
         # 静的障害物が再配置されるまで待機
-        rospy.sleep(1.0)
+        # rospy.sleep(1.0)
 
 
         # マーカーを削除
@@ -467,7 +472,7 @@ class GazeboEnvironment:
         self.set_goal_marker()
         # print("set all goal markers")
         # 静的障害物のマーカーを追加
-        self.set_obstacle_marker()
+        # self.set_obstacle_marker()
         # print("set all static obstacles markers")
 
         # フラグのリセット
@@ -704,7 +709,7 @@ class GazeboEnvironment:
             distances = self.get_sector_distances(data, sector_start, sector_end)
             if distances:  # データが存在する場合のみ平均を計算
                 avg_distance = sum(distances) / len(distances)
-                avg_distance = 3.0 - avg_distance  # 距離が近いほど大きな値になるようにする
+                avg_distance = 0.3 - avg_distance  # 距離が近いほど大きな値になるようにする
             else:
                 avg_distance = 0.0  # すべてのデータが無限大の場合は0.3メートルとする
             avg_distances.append(avg_distance)
