@@ -59,7 +59,7 @@ class PPOAgent:
         self.replay_memory_buffer = ReplayMemoryBuffer(self.buffer_size, self.batch_size, self.device)
 
         self.actor_scheduler = LambdaLR(self.actor_optimizer, lr_lambda=self.scheduler)
-        self.critic_scheduler = LambdaLR(self.actor_optimizer, lr_lambda=self.scheduler)
+        self.critic_scheduler = LambdaLR(self.critic_optimizer, lr_lambda=self.scheduler)
 
         self.logger = Logger(self.dir_name, self.n_actions)
     def get_action(self, id, state, local_actor, logger_dict, collect_action_flag):
